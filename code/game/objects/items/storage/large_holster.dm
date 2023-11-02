@@ -359,15 +359,12 @@
 		return FALSE
 
 	if(user.back != src)
-		to_chat(user, SPAN_WARNING("[src] must be equipped before you can switch types."))
+		to_chat(usr, "The [src] must be equipped before you can switch types")
 		return
 
-	if(!linked_flamer)
-		to_chat(user, SPAN_WARNING("An incinerator unit must be linked in order to switch fuel types."))
-		return
-
-	if(user.get_active_hand() != linked_flamer)
-		to_chat(user, SPAN_WARNING("You must be holding [linked_flamer] to use [src]."))
+	var/obj/item/weapon/gun/flamer/M240T/F = user.get_active_hand()
+	if(!istype(F))
+		to_chat(usr, "You must be holding the M240-T incinerator unit to use [src]")
 		return
 
 	if(!active_fuel)
