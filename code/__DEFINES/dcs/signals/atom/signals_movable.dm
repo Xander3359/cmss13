@@ -11,6 +11,9 @@
 	#define COMPONENT_CANCEL_MOVE (1<<0)
 /// From /turf/open/gm/river/Entered(): (turf/open/gm/river/river, covered)
 #define COMSIG_MOVABLE_ENTERED_RIVER "movable_entered_river"
+/// From /atom/movable/proc/doMove: I think it only works with forceMove so watch out
+#define COMSIG_MOVABLE_FORCEMOVE_PRE_CROSSED "movable_forcemove_pre_crossed"
+	#define COMPONENT_IGNORE_CROSS (1<<0)
 
 ///from /mob/living/carbon/xenomorph/start_pulling(): (mob/living/carbon/xenomorph/X)
 #define COMSIG_MOVABLE_XENO_START_PULLING "movable_xeno_start_pulling"
@@ -29,3 +32,6 @@
 #define COMSIG_MOVABLE_UPDATE_GLIDE_SIZE "movable_glide_size"
 
 #define COMSIG_MOVABLE_TURF_ENTER "movable_turf_enter"
+
+/// Called when a movable atom enters an obj's contents (obj/entered, atom/old_loc)
+#define COMSIG_MOVABLE_ENTERED_OBJ "atom_entered"

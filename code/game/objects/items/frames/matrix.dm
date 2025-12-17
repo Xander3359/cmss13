@@ -18,11 +18,11 @@
 /obj/item/frame/matrix_frame/attackby(obj/item/W, mob/user as mob)
 	switch(state)
 		if(ASSEMBLY_EMPTY)
-			if(istype(W, /obj/item/reagent_container/glass/beaker/vial) && W.reagents.total_volume == 30 && W.reagents.reagent_list.len == 1)
+			if(istype(W, /obj/item/reagent_container/glass/beaker/vial) && W.reagents.total_volume == 30 && length(W.reagents.reagent_list) == 1)
 				user.drop_held_item(W)
 				W.forceMove(src)
 				state = ASSEMBLY_UNLOCKED
-				to_chat(user, SPAN_NOTICE("You add the vial to the matrix, and the testing indicator lights up with green"))
+				to_chat(user, SPAN_NOTICE("You add the vial to the matrix, and the testing indicator lights up with green."))
 				desc = initial(desc) + "\nThe vial is installed but is not screwed."
 				var/datum/reagent/S = W.reagents.reagent_list[1]
 				if(S.get_property(PROPERTY_PHOTOSENSITIVE) && !S.get_property(PROPERTY_CRYSTALLIZATION))
@@ -45,17 +45,17 @@
 			else if(W.reagents.total_volume < 30)
 				to_chat(user, SPAN_WARNING("The testing indicator lights up with red! The container requires to be fully filled!"))
 				return
-			else if (W.reagents.reagent_list.len > 1)
+			else if (length(W.reagents.reagent_list) > 1)
 				to_chat(user, SPAN_WARNING("The testing indicator lights up with red! The container requires a pure sample!"))
 
 		if(ASSEMBLY_UNLOCKED)
 			if(HAS_TRAIT(W, TRAIT_TOOL_SCREWDRIVER))
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 25, 1)
 				state = ASSEMBLY_LOCKED
-				to_chat(user, SPAN_NOTICE("You lock the matrix assembly"))
+				to_chat(user, SPAN_NOTICE("You lock the matrix assembly."))
 				desc = initial(desc) + "\n The vial is installed and screwed in place."
 		if(ASSEMBLY_LOCKED)
 			if(HAS_TRAIT(W, TRAIT_TOOL_SCREWDRIVER))
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 25, 1)
 				state = ASSEMBLY_UNLOCKED
-				to_chat(user, SPAN_NOTICE("You unlock the matrix assembly"))
+				to_chat(user, SPAN_NOTICE("You unlock the matrix assembly."))

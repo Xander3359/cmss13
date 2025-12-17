@@ -118,7 +118,7 @@
 
 	var/list/passengers
 	var/list/bounds = get_bound_turfs()
-	for(var/turf/T in block(bounds[1], bounds[2]))
+	for(var/turf/T as anything in block(bounds[1], bounds[2]))
 		for(var/atom/A in T)
 			if(isliving(A))
 				LAZYADD(passengers, A)
@@ -202,6 +202,8 @@
 	var/mob/living/M
 	if(ismob(A))
 		M = A
+		for(var/datum/action/minimap/user_map in M.actions)
+			user_map.override_locator(exterior)
 	else
 		var/mobs_amount = 0
 		for(M in A)
@@ -298,31 +300,28 @@
 				to_chat(A, SPAN_WARNING("Something is blocking the exit!"))
 			return FALSE
 
+	var/mob/living/mob
+	if(ismob(A))
+		mob = A
+		for(var/datum/action/minimap/user_map in mob.actions)
+			user_map.clear_locator_override()
 	A.forceMove(get_turf(exit_turf))
 	update_passenger_count()
 	return TRUE
 
 // Returns min and max turfs for the interior
 /datum/interior/proc/get_bound_turfs()
-	var/turf/min = TURF_FROM_COORDS_LIST(reservation.bottom_left_coords)
-	if(!min)
-		return null
-
-	var/turf/max = TURF_FROM_COORDS_LIST(reservation.top_right_coords)
-	if(!max)
-		return null
-
-	return list(min, max)
+	return list(reservation.bottom_left_turfs[1], reservation.top_right_turfs[1])
 
 /datum/interior/proc/get_middle_coords()
-	var/turf/min = reservation.bottom_left_coords
-	var/turf/max = reservation.top_right_coords
+	var/turf/min = reservation.bottom_left_turfs[1]
+	var/turf/max = reservation.top_right_turfs[1]
+	return list(floor(min.x + (max.x - min.x)/2), floor(min.y + (max.y - min.y)/2), min.z)
 
-	return list(Floor(min[1] + (max[1] - min[1])), Floor(min[2] + (max[2] - min[2])), min[3])
 
 /datum/interior/proc/get_middle_turf()
 	var/list/turf/bounds = get_bound_turfs()
-	var/turf/middle = locate(Floor(bounds[1].x + (bounds[2].x - bounds[1].x)/2), Floor(bounds[1].y + (bounds[2].y - bounds[1].y)/2), bounds[1].z)
+	var/turf/middle = locate(floor(bounds[1].x + (bounds[2].x - bounds[1].x)/2), floor(bounds[1].y + (bounds[2].y - bounds[1].y)/2), bounds[1].z)
 
 	return middle
 
@@ -330,7 +329,7 @@
 /datum/interior/proc/find_entrances()
 	var/list/bounds = get_bound_turfs()
 
-	for(var/turf/T in block(bounds[1], bounds[2]))
+	for(var/turf/T as anything in block(bounds[1], bounds[2]))
 		var/obj/effect/landmark/interior/spawn/entrance/E = locate() in T
 		if(E)
 			LAZYADD(entrance_markers, E)
@@ -340,6 +339,21 @@
 /datum/interior/proc/handle_landmarks()
 	var/list/bounds = get_bound_turfs()
 
-	for(var/turf/T in block(bounds[1], bounds[2]))
+	for(var/turf/T as anything in block(bounds[1], bounds[2]))
 		for(var/obj/effect/landmark/interior/L in T)
 			L.on_load(src)
+
+/datum/interior/proc/drop_human_bodies(turf/drop_turf)
+	if((passengers_taken_slots == 0) && (revivable_dead_taken_slots == 0))
+		return // no one of interest inside
+
+	var/count = 0
+
+	for(var/mob/living/L as anything in get_passengers())
+		if(L.stat == DEAD)
+			L.forceMove(drop_turf) // Drop the bodies on the floor
+			count += 1
+
+	if(count > 0)
+		exterior.visible_message(SPAN_NOTICE("The sudden jolt throws \the [count == 1 ? "body" : "bodies"] out of \the [exterior]"))
+		update_passenger_count()

@@ -23,48 +23,50 @@ All ShuttleMove procs go here
 // var/shuttle_dir = shuttle.dir
 	for(var/i in contents)
 		var/atom/movable/thing = i
-		SEND_SIGNAL(thing, COMSIG_MOVABLE_SHUTTLE_CRUSH, shuttle)
-		if(ismob(thing))
-			if(isliving(thing))
-				var/mob/living/M = thing
-// if(M.status_flags & INCORPOREAL)
-// continue // Ghost things don't splat
-				if(M.buckled)
-					M.buckled.unbuckle()//M, TRUE)
-				if(M.pulledby)
-					M.pulledby.stop_pulling()
-				M.stop_pulling()
-				M.visible_message(SPAN_WARNING("[shuttle] slams into [M]!"))
-				M.gib()
+		shuttleCrushThing(thing, shuttle)
 
-		else //non-living mobs shouldn't be affected by shuttles, which is why this is an else
-			if(thing.anchored)
-				// Ordered by most likely:
-				if(istype(thing, /obj/structure/machinery/landinglight))
-					continue
-				if(istype(thing, /obj/docking_port))
-					continue
-				if(istype(thing, /obj/structure/machinery/camera))
-					continue
-				if(istype(thing, /obj/structure/machinery/floodlight/landing/floor))
-					continue
+/turf/proc/shuttleCrushThing(atom/movable/thing, obj/docking_port/mobile/shuttle)
+	SEND_SIGNAL(thing, COMSIG_MOVABLE_SHUTTLE_CRUSH, shuttle)
+	if(ismob(thing))
+		if(isliving(thing))
+			var/mob/living/living_thing = thing
+			if(living_thing.buckled)
+				living_thing.buckled.unbuckle()
+			if(living_thing.pulledby)
+				living_thing.pulledby.stop_pulling()
+			living_thing.stop_pulling()
+			living_thing.visible_message(SPAN_WARNING("[shuttle] slams into [living_thing]!"))
+			living_thing.gib()
 
-				// SSshuttle also removes these in remove_ripples, but its timing is weird
-				if(!istype(thing, /obj/effect))
-					log_debug("[shuttle] deleted an anchored [thing]")
+	else //non-living mobs shouldn't be affected by shuttles, which is why this is an else
+		if(thing.anchored)
+			// Ordered by most likely:
+			if(istype(thing, /obj/structure/machinery/landinglight))
+				return
+			if(istype(thing, /obj/docking_port))
+				return
+			if(istype(thing, /obj/structure/machinery/camera))
+				return
+			if(istype(thing, /obj/structure/machinery/floodlight/landing/floor))
+				return
 
-			qdel(thing)
+			// SSshuttle also removes these in remove_ripples, but its timing is weird
+			if(!istype(thing, /obj/effect))
+				log_debug("[shuttle] deleted an anchored [thing]")
+
+		qdel(thing)
+
 
 // Called on the old turf to move the turf data
 /turf/proc/onShuttleMove(turf/newT, list/movement_force, move_dir)
 	if(newT == src) // In case of in place shuttle rotation shenanigans.
 		return
 	//Destination turf changes
-	//Baseturfs is definitely a list or this proc wouldnt be called
+	//Baseturfs is definitely a list or this proc wouldn't be called
 	var/shuttle_boundary = baseturfs.Find(/turf/baseturf_skipover/shuttle)
 	if(!shuttle_boundary)
 		CRASH("A turf queued to move via shuttle somehow had no skipover in baseturfs. [src]([type]):[loc]")
-	var/depth = baseturfs.len - shuttle_boundary + 1
+	var/depth = length(baseturfs) - shuttle_boundary + 1
 	newT.CopyOnTop(src, 1, depth, TRUE)
 	return TRUE
 
@@ -76,7 +78,7 @@ All ShuttleMove procs go here
 
 	var/shuttle_boundary = baseturfs.Find(/turf/baseturf_skipover/shuttle)
 	if(shuttle_boundary)
-		oldT.ScrapeAway(baseturfs.len - shuttle_boundary + 1)
+		oldT.ScrapeAway(length(baseturfs) - shuttle_boundary + 1)
 
 	if(rotation)
 		shuttleRotate(rotation) //see shuttle_rotate.dm
@@ -184,11 +186,6 @@ All ShuttleMove procs go here
 	. = ..()
 	if(. & MOVE_AREA)
 		. |= MOVE_CONTENTS
-		cameranet.removeCamera(src)
-
-/obj/structure/machinery/camera/afterShuttleMove(turf/oldT, list/movement_force, shuttle_dir, shuttle_preferred_direction, move_dir, rotation)
-	. = ..()
-	cameranet.addCamera(src)
 
 /obj/structure/machinery/atmospherics/pipe/afterShuttleMove(turf/oldT, list/movement_force, shuttle_dir, shuttle_preferred_direction, move_dir, rotation)
 	. = ..()
@@ -217,6 +214,10 @@ All ShuttleMove procs go here
 		if(buckled)
 			shake_force *= 0.25
 		shake_camera(src, shake_force, 1)
+
+/mob/living/onShuttleMove(turf/newT, turf/oldT, list/movement_force, move_dir, obj/docking_port/stationary/old_dock, obj/docking_port/mobile/moving_dock)
+	QDEL_NULL(observed_atom)
+	. = ..()
 
 /mob/living/lateShuttleMove(turf/oldT, list/movement_force, move_dir)
 	if(buckled)

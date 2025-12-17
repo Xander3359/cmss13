@@ -2,6 +2,9 @@
 	name = "Weyland-Yutani Corporate Security (Squad)"
 	mob_max = 6
 	probability = 0
+	shuttle_id = MOBILE_SHUTTLE_ID_ERT2
+	name_of_spawn = /obj/effect/landmark/ert_spawns/distress_pmc
+	home_base = /datum/lazy_template/ert/weyland_station
 
 /datum/emergency_call/goon/New()
 	..()
@@ -47,7 +50,7 @@
 /datum/emergency_call/goon/chem_retrieval/New()
 	..()
 	dispatch_message = "[MAIN_SHIP_NAME], this is USCSS Royce. Our squad is boarding to retrieve all samples of a chemical recently scanned from your research department. You should already have received a significant sum of money for your department's discovery. In return we ask that you cooperate and provide everything related to the chemical to our retrieval team."
-	objectives = "Secure all documents, samples, and chemicals containing the property DNA_Disintegrating from [MAIN_SHIP_NAME] research department and return them to Response Team Station."
+	objectives = "Secure all documents and samples of chemical 'Xenogenetic Catalyst' from [MAIN_SHIP_NAME] research department. Ensure the vial stays intact, contains 30 units and return them to Response Team Station."
 
 /datum/emergency_call/goon/chem_retrieval/proc/check_objective_info()
 	if(objective_info)
@@ -81,7 +84,7 @@
 	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(to_chat), mob, SPAN_BOLD("Objectives:</b> [objectives]")), 1 SECONDS)
 
 /datum/emergency_call/goon/chem_retrieval/print_backstory(mob/living/carbon/human/backstory_human)
-	if(backstory_human.job == JOB_WY_GOON_RESEARCHER)
+	if(backstory_human.job == JOB_WY_RESEARCHER)
 		to_chat(backstory_human, SPAN_BOLD("You were born [pick(75;"in Europe", 15;"in Asia", 10;"on Mars")] to a wealthy family."))
 		to_chat(backstory_human, SPAN_BOLD("Joining the ranks of Weyland-Yutani was the perfect way to further your research goals."))
 		to_chat(backstory_human, SPAN_BOLD("You have a very in depth understanding of xenomorphs."))

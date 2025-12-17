@@ -19,8 +19,11 @@
 /// Called after one or more verbs are added: (list of verbs added)
 #define COMSIG_CLIENT_VERB_REMOVED "client_verb_removed"
 
-/// Called after a client logs into a mob: (mob)
-#define COMSIG_CLIENT_MOB_LOGIN "client_mob_changed"
+/// Called from /mob/Login() after a client logs into a mob: (mob)
+#define COMSIG_CLIENT_MOB_LOGGED_IN "client_mob_logged_in"
+
+/// Called when escape menu is opened CLIENT_VERB(open_escape_menu)
+#define COMSIG_CLIENT_ESCAPE_MENU_OPEN "client_escape_menu_opened"
 
 /// Called when something is added to a client's screen : /client/proc/add_to_screen(screen_add)
 #define COMSIG_CLIENT_SCREEN_ADD "client_screen_add"
@@ -28,5 +31,14 @@
 /// Called when something is removed from a client's screen : /client/proc/remove_from_screen(screen_remove)
 #define COMSIG_CLIENT_SCREEN_REMOVE "client_screen_remove"
 
-/// When a mind is transfered to another mob at /datum/mind/proc/transfer_to()
-#define COMSIG_CLIENT_MIND_TRANSFER "mind_transfer"
+/// Called when the eye is modified through the set_eye() setter : /client/proc/set_eye(new_eye)
+#define COMSIG_CLIENT_EYE_CHANGED "client_eye_changed"
+
+/// Called when pixel_x is modified through the set_pixel_x() setter : /client/proc/set_pixel_x(new_pixel_x)
+#define COMSIG_CLIENT_PIXEL_X_CHANGED "client_pixel_x_changed"
+
+/// Called when pixel_y is modified through the set_pixel_y() setter : /client/proc/set_pixel_y(new_pixel_y)
+#define COMSIG_CLIENT_PIXEL_Y_CHANGED "client_pixel_y_changed"
+
+/// Called when view is modified through the change_view() setter : /client/proc/change_view(new_view)
+#define COMSIG_CLIENT_VIEW_CHANGED "client_changed_view"

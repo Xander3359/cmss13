@@ -2,33 +2,51 @@
 /client/proc/toggle_hear_radio()
 	set name = "Show/Hide Radio Chatter"
 	set category = "Preferences.Chat"
-	set desc = "Toggle seeing radio chatter from radios and speakers"
-	if(!admin_holder) return
+	set desc = "Toggle seeing radio chatter from radios and speakers."
+	if(!admin_holder)
+		return
 	prefs.toggles_chat ^= CHAT_RADIO
 	prefs.save_preferences()
-	to_chat(usr, SPAN_BOLDNOTICE("You will [(prefs.toggles_chat & CHAT_RADIO) ? "now" : "no longer"] see radio chatter from radios or speakers"))
+	to_chat(usr, SPAN_BOLDNOTICE("You will [(prefs.toggles_chat & CHAT_RADIO) ? "now" : "no longer"] see radio chatter from radios or speakers."))
 
 /client/proc/toggleadminhelpsound()
 	set name = "Hear/Silence Adminhelps"
 	set category = "Preferences.Sound"
-	set desc = "Toggle hearing a notification when admin PMs are received"
-	if(!admin_holder) return
+	set desc = "Toggle hearing a notification when admin PMs are received."
+	if(!admin_holder)
+		return
 	prefs.toggles_sound ^= SOUND_ADMINHELP
 	prefs.save_preferences()
-	to_chat(usr,SPAN_BOLDNOTICE( "You will [(prefs.toggles_sound & SOUND_ADMINHELP) ? "now" : "no longer"] hear a sound when adminhelps arrive."))
+	to_chat(usr, SPAN_BOLDNOTICE("You will [(prefs.toggles_sound & SOUND_ADMINHELP) ? "now" : "no longer"] hear a sound when adminhelps arrive."))
 
 /client/proc/toggleprayers()
 	set name = "Show/Hide Prayers"
 	set category = "Preferences.Chat"
-	set desc = "Toggles seeing prayers"
+	set desc = "Toggles seeing prayers."
 	prefs.toggles_chat ^= CHAT_PRAYER
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("You will [(prefs.toggles_chat & CHAT_PRAYER) ? "now" : "no longer"] see prayerchat."))
 
-/client/verb/toggletitlemusic()
+CLIENT_VERB(toggle_observer_announcement_sounds)
+	set name = "Hear/Silence Ghost Announcements"
+	set category = "Preferences.Sound"
+	set desc = "Toggle hearing a notification of announcements while being an observer."
+	prefs.toggles_sound ^= SOUND_OBSERVER_ANNOUNCEMENTS
+	prefs.save_preferences()
+	to_chat(usr, SPAN_BOLDNOTICE("You will [(prefs.toggles_sound & SOUND_OBSERVER_ANNOUNCEMENTS) ? "now" : "no longer"] hear announcement sounds as an observer."))
+
+CLIENT_VERB(toggle_fax_machine_sounds)
+	set name = "Hear/Silence Ghost Fax Machines"
+	set category = "Preferences.Sound"
+	set desc = "Toggle hearing a notification of faxes while being an observer."
+	prefs.toggles_sound ^= SOUND_FAX_MACHINE
+	prefs.save_preferences()
+	to_chat(usr, SPAN_BOLDNOTICE("You will [(prefs.toggles_sound & SOUND_FAX_MACHINE) ? "now" : "no longer"] hear a fax sounds as an observer."))
+
+CLIENT_VERB(toggletitlemusic)
 	set name = "Hear/Silence LobbyMusic"
 	set category = "Preferences.Sound"
-	set desc = "Toggles hearing the GameLobby music"
+	set desc = "Toggles hearing the GameLobby music."
 	prefs.toggles_sound ^= SOUND_LOBBY
 	prefs.save_preferences()
 	if(prefs.toggles_sound & SOUND_LOBBY)
@@ -39,7 +57,7 @@
 		to_chat(src, SPAN_BOLDNOTICE("You will no longer hear music in the game lobby."))
 		src << sound(null, repeat = 0, wait = 0, volume = 85, channel = SOUND_CHANNEL_LOBBY) // stop the jamsz
 
-/client/verb/togglerebootsound()
+CLIENT_VERB(togglerebootsound)
 	set name = "Hear/Silence Reboot Sound"
 	set category = "Preferences.Sound"
 	set desc = "Toggles hearing the server reboot sound effect."
@@ -47,46 +65,31 @@
 	prefs.save_preferences()
 	to_chat(src, "You will [(prefs.toggles_sound & SOUND_REBOOT) ? "now" : "no longer"] hear server reboot sounds.")
 
-/client/verb/togglemidis()
-	set name = "Silence Current Midi"
+CLIENT_VERB(togglemidis)
+	set name = "Silence Current Admin Sound"
 	set category = "Preferences.Sound"
-	set desc = "Toggles hearing sounds uploaded by admins"
-	// prefs.toggles_sound ^= SOUND_MIDI // Toggle on/off
-	// prefs.save_preferences() // We won't save the change - it'll be a temporary switch instead of permanent, but they can still make it permanent in character setup.
-	if(prefs.toggles_sound & SOUND_MIDI) // Not using && midi_playing here - since we can't tell how long an admin midi is, the user should always be able to turn it off at any time.
-		to_chat(src, SPAN_BOLDNOTICE("The currently playing midi has been silenced."))
-		var/sound/break_sound = sound(null, repeat = 0, wait = 0, channel = SOUND_CHANNEL_ADMIN_MIDI)
-		break_sound.priority = 250
-		src << break_sound //breaks the client's sound output on SOUND_CHANNEL_ADMIN_MIDI
-		if(src.mob.client.midi_silenced) return
-		if(midi_playing)
-			total_silenced++
-			message_admins("A player has silenced the currently playing midi. Total: [total_silenced] player(s).", 1)
-			src.mob.client.midi_silenced = 1
-			spawn(30 SECONDS) // Prevents message_admins() spam. Should match with the midi_playing_timer spawn() in playsound.dm
-				src.mob.client.midi_silenced = 0
-	else
-		to_chat(src, SPAN_BOLDNOTICE("You have 'Play Admin Midis' disabled in your Character Setup, so this verb is useless to you."))
+	set desc = "Stops the current admin sound. You can also use the STOP icon in the player above tgchat."
+	tgui_panel?.stop_music()
 
-/client/verb/togglechat()
+CLIENT_VERB(togglechat)
 	set name = "Toggle Abovehead Chat"
 	set category = "Preferences.Chat"
-	set desc = "Toggles abovehead chat until you change body"
+	set desc = "Toggles abovehead chat until you change body."
 
 	prefs.lang_chat_disabled = ~prefs.lang_chat_disabled
 	prefs.save_preferences()
 	to_chat(src,SPAN_BOLDNOTICE( "You will [(!prefs.lang_chat_disabled) ? "now" : "no longer"] see messages above head."))
 
-/client/verb/togglechatemotes()
+CLIENT_VERB(togglechatemotes)
 	set name = "Toggle Abovehead Chat Emotes"
 	set category = "Preferences.Chat"
-	set desc = "Toggles seeing emotes in abovehead chat"
+	set desc = "Toggles seeing emotes in abovehead chat."
 
 	prefs.toggles_langchat ^= LANGCHAT_SEE_EMOTES
 	prefs.save_preferences()
 	to_chat(src,SPAN_BOLDNOTICE( "You will [(prefs.toggles_langchat & LANGCHAT_SEE_EMOTES) ? "now" : "no longer"] see emotes in abovehead chat."))
 
-/client/verb/toggle_permission_errors()
+CLIENT_VERB(toggle_permission_errors)
 	set name = "Toggle Permission Errors"
 	set category = "Preferences.Chat"
 	set desc = "Toggles error messages due to missing permissions."
@@ -95,27 +98,27 @@
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("You will [(prefs.show_permission_errors) ? "now" : "no longer"] see permission error messages."))
 
-/client/verb/listen_ooc()
+CLIENT_VERB(listen_ooc)
 	set name = "Show/Hide OOC"
 	set category = "Preferences.Chat"
-	set desc = "Toggles seeing OutOfCharacter chat"
+	set desc = "Toggles seeing OutOfCharacter chat."
 	prefs.toggles_chat ^= CHAT_OOC
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("You will [(prefs.toggles_chat & CHAT_OOC) ? "now" : "no longer"] see messages on the OOC channel."))
 
-/client/verb/listen_looc()
+CLIENT_VERB(listen_looc)
 	set name = "Show/Hide LOOC"
 	set category = "Preferences.Chat"
-	set desc = "Toggles seeing Local OutOfCharacter chat"
+	set desc = "Toggles seeing Local OutOfCharacter chat."
 	prefs.toggles_chat ^= CHAT_LOOC
 	prefs.save_preferences()
 
 	to_chat(src, SPAN_BOLDNOTICE("You will [(prefs.toggles_chat & CHAT_LOOC) ? "now" : "no longer"] see messages on the LOOC channel."))
 
-/client/verb/Toggle_Soundscape() //All new ambience should be added here so it works with this verb until someone better at things comes up with a fix that isn't awful
+CLIENT_VERB(Toggle_Soundscape) //All new ambience should be added here so it works with this verb until someone better at things comes up with a fix that isn't awful
 	set name = "Hear/Silence Ambience"
 	set category = "Preferences.Sound"
-	set desc = "Toggles hearing ambient sound effects"
+	set desc = "Toggles hearing ambient sound effects."
 	prefs.toggles_sound ^= SOUND_AMBIENCE
 	prefs.save_preferences()
 	if(prefs.toggles_sound & SOUND_AMBIENCE)
@@ -127,7 +130,7 @@
 		src << sound(null, repeat = 0, wait = 0, volume = 0, channel = SOUND_CHANNEL_AMBIENCE)
 		src << sound(null, repeat = 0, wait = 0, volume = 0, channel = SOUND_CHANNEL_SOUNDSCAPE)
 
-/client/verb/toggle_roundstart_flash()
+CLIENT_VERB(toggle_roundstart_flash)
 	set name = "Toggle Roundstart Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when the round starts."
@@ -139,7 +142,7 @@
 	else
 		to_chat(src,  SPAN_BOLDNOTICE("The icon on your taskbar will no longer flash when the Tip of the Round is played right before the start of the round."))
 
-/client/verb/toggle_roundend_flash()
+CLIENT_VERB(toggle_roundend_flash)
 	set name = "Toggle Roundend Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when the round ends."
@@ -151,7 +154,7 @@
 	else
 		to_chat(src, SPAN_BOLDNOTICE( "The icon on your taskbar will no longer flash when the round ends."))
 
-/client/verb/toggle_corpserevive_flash()
+CLIENT_VERB(toggle_corpserevive_flash)
 	set name = "Toggle Revival Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when your corpse gets revived."
@@ -163,7 +166,7 @@
 	else
 		to_chat(src, SPAN_BOLDNOTICE( "The icon on your taskbar will no longer flash when your corpse gets revived."))
 
-/client/verb/toggle_unnest_flash()
+CLIENT_VERB(toggle_unnest_flash)
 	set name = "Toggle Unnest Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when you get unnested and can reenter your body."
@@ -175,7 +178,7 @@
 	else
 		to_chat(src, SPAN_BOLDNOTICE( "The icon on your taskbar will no longer flash when you get unnested and can reenter your body."))
 
-/client/verb/toggle_newlarva_flash()
+CLIENT_VERB(toggle_newlarva_flash)
 	set name = "Toggle Larva Unpool Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when you get spawned in as a xeno larva from the spawn pool."
@@ -188,7 +191,7 @@
 		to_chat(src, SPAN_BOLDNOTICE( "The icon on your taskbar will no longer flash when you get spawned as a burrowed larva."))
 
 
-/client/verb/toggle_adminpm_flash()
+CLIENT_VERB(toggle_adminpm_flash)
 	set name = "Toggle Admin PM Flash"
 	set category = "Preferences.TaskbarFlashing"
 	set desc = "Toggles the taskbar flashing when you an admin messages you."
@@ -201,33 +204,29 @@
 		to_chat(src, SPAN_BOLDNOTICE("The icon on your taskbar will no longer flash when an admin messages you. Warning, use at own risk."))
 
 //be special
-/client/verb/toggle_be_special()
+CLIENT_VERB(toggle_be_special)
 	set name = "Toggle SpecialRole Candidacy"
 	set category = "Preferences"
-	set desc = "Toggles which special roles you would like to be a candidate for, during events."
+	set desc = "Toggles which special roles you would like to be a candidate for."
 
-	var/list/be_special_flags = list(
-		"Xenomorph after unrevivable death" = BE_ALIEN_AFTER_DEATH,
-		"Agent" = BE_AGENT,
-	)
-	var/role = tgui_input_list(usr, "Toggle which candidacy?", "Select role", be_special_flags)
+	var/role = tgui_input_list(usr, "Toggle which candidacy?", "Select role", GLOB.be_special_flags)
 	if(!role)
 		return
-	var/role_flag = be_special_flags[role]
+	var/role_flag = GLOB.be_special_flags[role]
 	prefs.be_special ^= role_flag
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("You will [(prefs.be_special & role_flag) ? "now" : "no longer"] be considered for [role] events (where possible)."))
 
-/client/verb/toggle_fullscreen_preference()
+CLIENT_VERB(toggle_fullscreen_preference)
 	set name = "Toggle Fullscreen Preference"
 	set category = "Preferences"
 	set desc = "Toggles whether the game window will be true fullscreen or normal."
 
 	prefs.toggle_prefs ^= TOGGLE_FULLSCREEN
 	prefs.save_preferences()
-	toggle_fullscreen(prefs.toggle_prefs & TOGGLE_FULLSCREEN)
+	update_fullscreen()
 
-/client/verb/toggle_ambient_occlusion()
+CLIENT_VERB(toggle_ambient_occlusion)
 	set name = "Toggle Ambient Occlusion"
 	set category = "Preferences"
 	set desc = "Toggles whether the game will have ambient occlusion on."
@@ -239,7 +238,7 @@
 		return
 	plane_master.backdrop(src.mob)
 
-/client/verb/toggle_member_publicity()
+CLIENT_VERB(toggle_member_publicity)
 	set name = "Toggle Membership Publicity"
 	set category = "Preferences"
 	set desc = "Toggles if other players can see that you are a BYOND member (OOC logo)."
@@ -248,7 +247,7 @@
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("Others can[(prefs.toggle_prefs & TOGGLE_MEMBER_PUBLIC) ? "" : "'t"] now see if you are a BYOND member."))
 
-/client/verb/toggle_ooc_country_flag()
+CLIENT_VERB(toggle_ooc_country_flag)
 	set name = "Toggle Country Flag"
 	set category = "Preferences"
 	set desc = "Toggles if your country flag (based on what country your IP is connecting from) is displayed in OOC chat."
@@ -261,27 +260,33 @@
 	prefs.save_preferences()
 	to_chat(src, SPAN_BOLDNOTICE("Your country flag [(prefs.toggle_prefs & TOGGLE_OOC_FLAG) ? "will now" : "will now not"] appear before your name in OOC chat."))
 
-/client/verb/toggle_prefs() // Toggle whether anything will happen when you click yourself in non-help intent
+CLIENT_VERB(toggle_prefs) // Toggle whether anything will happen when you click yourself in non-help intent
 	set name = "Toggle Preferences"
 	set category = "Preferences"
-	set desc = "Toggles a specific toggleable preference"
+	set desc = "Toggles a specific toggleable preference."
 
 	var/list/pref_buttons = list(
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_ignore_self'>Toggle the Ability to Hurt Yourself</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_help_intent_safety'>Toggle Help Intent Safety</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_auto_eject'>Toggle Guns Auto-Ejecting Magazines</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_auto_eject_to_hand'>Toggle Guns Auto-Ejecting Magazines to Your Hands</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_eject_to_hand'>Toggle 'Unload Weapon' Ejecting Magazines to Your Hands</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_automatic_punctuation'>Toggle Automatic Punctuation</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_middle_mouse_click'>Toggle Middle Mouse Ability Activation</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_ability_deactivation'>Toggle Ability Deactivation</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_clickdrag_override'>Toggle Combat Click-Drag Override</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Alternate-Fire Dual Wielding</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_middle_mouse_swap_hands'>Toggle Middle Mouse Swapping Hands</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_vend_item_to_hand'>Toggle Vendors Vending to Hands</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/switch_item_animations'>Toggle Item Animations</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/toggle_admin_sound_types'>Toggle Admin Sound Types</a><br>",
-		"<a href='?src=\ref[src];action=proccall;procpath=/client/proc/set_eye_blur_type'>Set Eye Blur Type</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_ignore_self'>Toggle the Ability to Hurt Yourself</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_help_intent_safety'>Toggle Help Intent Safety</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_auto_eject'>Toggle Guns Auto-Ejecting Magazines</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_auto_eject_to_hand'>Toggle Guns Auto-Ejecting Magazines to Your Hands</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_ammo_display_type'>Toggle Semi-Auto Ammo Counter</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_eject_to_hand'>Toggle 'Unload Weapon' Ejecting Magazines to Your Hands</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_automatic_punctuation'>Toggle Automatic Punctuation</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_ability_deactivation'>Toggle Ability Deactivation</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_clickdrag_override'>Toggle Combat Click-Drag Override</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Alternate-Fire Dual Wielding</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_auto_shove'>Toggle Auto Shove</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_middle_mouse_swap_hands'>Toggle Middle Mouse Swapping Hands</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_vend_item_to_hand'>Toggle Vendors Vending to Hands</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/switch_item_animations'>Toggle Item Animations</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_admin_sound_types'>Toggle Admin Sound Types</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_eye_blur_type'>Set Eye Blur Type</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_flash_type'>Set Flash Type</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_crit_type'>Set Crit Type</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_flashing_lights_pref'>Set Flashing Lights</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_leadership_spoken_orders'>Toggle Leadership Spoken Orders</a><br>",
+		"<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_cocking_to_hand'>Toggle Bullet Cocking to hand</a><br>",
 	)
 
 	var/dat = ""
@@ -290,7 +295,7 @@
 
 	var/height = 50+24*length(pref_buttons)
 
-	show_browser(src, dat, "Toggle Preferences", "togglepreferences", "size=475x[height]")
+	show_browser(src, dat, "Toggle Preferences", "togglepreferences", width = 475, height = height)
 
 /client/proc/toggle_ignore_self() // Toggle whether anything will happen when you click yourself in non-help intent
 	prefs.toggle_prefs ^= TOGGLE_IGNORE_SELF
@@ -318,6 +323,12 @@
 		to_chat(src, msg)
 	else
 		to_chat(src, SPAN_BOLDNOTICE("Guns with auto-ejectors will automatically eject their magazines."))
+	prefs.save_preferences()
+
+
+/client/proc/toggle_ammo_display_type()
+	prefs.toggle_prefs ^= TOGGLE_AMMO_DISPLAY_TYPE
+	to_chat(usr, SPAN_NOTICE("Guns in semi-automatic mode will now display the ammo on every [SPAN_BOLD(prefs.toggle_prefs & TOGGLE_AMMO_DISPLAY_TYPE ? "fifth bullet and when the mag has less than 15 rounds left" : "single bullet")]."))
 	prefs.save_preferences()
 
 /client/proc/toggle_auto_eject_to_hand() // Toggle whether guns with auto-ejectors will eject their magazines to your offhand
@@ -348,12 +359,12 @@
 		to_chat(src, SPAN_BOLDNOTICE("Your messages will no longer be automatically punctuated if they are not punctuated already."))
 	prefs.save_preferences()
 
-/client/proc/toggle_middle_mouse_click() // Toggle whether abilities should use middle or shift clicking
-	prefs.toggle_prefs ^= TOGGLE_MIDDLE_MOUSE_CLICK
-	if (prefs.toggle_prefs & TOGGLE_MIDDLE_MOUSE_CLICK)
-		to_chat(src, SPAN_NOTICE("Your selected ability will now be activated with middle clicking."))
+/client/proc/toggle_auto_shove()
+	prefs.toggle_prefs ^= TOGGLE_AUTO_SHOVE_OFF
+	if (prefs.toggle_prefs & TOGGLE_AUTO_SHOVE_OFF)
+		to_chat(src, SPAN_NOTICE("You will no longer automatically shove people in the way as the Queen or King."))
 	else
-		to_chat(src, SPAN_NOTICE("Your selected ability will now be activated with shift clicking."))
+		to_chat(src, SPAN_NOTICE("You will now automatically shove people in the way as the Queen or King."))
 	prefs.save_preferences()
 
 /client/proc/toggle_ability_deactivation() // Toggle whether the current ability can be deactivated when re-selected
@@ -370,6 +381,24 @@
 		to_chat(src,SPAN_BOLDNOTICE( "Depressing the mouse button on disarm or harm intent will now click the target immediately, even if you hold it down -- unless you're click-dragging yourself, an ally, or an object in your inventory."))
 	else
 		to_chat(src,SPAN_BOLDNOTICE( "Click-dragging now blocks clicks from going through."))
+	prefs.save_preferences()
+
+/// Toggles whether activating marine leader orders will be spoken or not, on by default
+/client/proc/toggle_leadership_spoken_orders()
+	prefs.toggle_prefs ^= TOGGLE_LEADERSHIP_SPOKEN_ORDERS
+	if(prefs.toggle_prefs & TOGGLE_LEADERSHIP_SPOKEN_ORDERS)
+		to_chat(src, SPAN_BOLDNOTICE("Your leadership orders will no longer be verbally spoken."))
+	else
+		to_chat(src, SPAN_BOLDNOTICE("Your leadership orders will now be verbally spoken."))
+	prefs.save_preferences()
+
+/// Toggles whether cocking a gun should drop its bullet or moves it to your empty hand
+/client/proc/toggle_cocking_to_hand()
+	prefs.toggle_prefs ^= TOGGLE_COCKING_TO_HAND
+	if(prefs.toggle_prefs & TOGGLE_COCKING_TO_HAND)
+		to_chat(src, SPAN_BOLDNOTICE("You will attempt to catch the ejected bullet when cocking a gun."))
+	else
+		to_chat(src, SPAN_BOLDNOTICE("You will now drop the ejected bullet when cocking a gun."))
 	prefs.save_preferences()
 
 ///Toggle whether dual-wielding fires both guns at once or swaps between them.
@@ -458,6 +487,7 @@
 	else
 		CRASH("receive_random_tip() failed: null message")
 
+/// Toggle in character preferences and toggle preferences to configure what kind of blur overlay is used in game; Either blurry, impaired, or legacy.
 /client/proc/set_eye_blur_type()
 	var/result = tgui_alert(src, "What type of eye blur do you want?", "What type of eye blur do you want?", list("Blurry", "Impair", "Legacy"))
 	if(result == "Blurry")
@@ -471,10 +501,43 @@
 		to_chat(src, SPAN_NOTICE("Your vision will now have a legacy blurring effect. This is not recommended!"))
 	prefs.save_preferences()
 
-/client/verb/toggle_tgui_say()
+/// Toggle in character preferences and toggle preferences to configure what kind of flash overlay is used in game; Either white or black.
+/client/proc/set_flash_type()
+	var/result = tgui_alert(src, "What type of flash overlay do you want?", "What type of flash overlay do you want?", list("White", "Dark"))
+	if(result == "White")
+		prefs.flash_overlay_pref = FLASH_OVERLAY_WHITE
+		to_chat(src, SPAN_NOTICE("If flashed your vision will now be white."))
+	else if(result == "Dark")
+		prefs.flash_overlay_pref = FLASH_OVERLAY_DARK
+		to_chat(src, SPAN_NOTICE("If flashed your vision will now be dark."))
+	prefs.save_preferences()
+
+/// Toggle in character preferences and toggle preferences to configure what kind of crit overlay is used in game; Either white or grey.
+/client/proc/set_crit_type()
+	var/result = tgui_alert(src, "What type of crit overlay do you want?", "What type of crit overlay do you want?", list("White", "Dark"))
+	if(result == "White")
+		prefs.crit_overlay_pref = CRIT_OVERLAY_WHITE
+		to_chat(src, SPAN_NOTICE("If in critical condition your vision will now be white."))
+	else if(result == "Dark")
+		prefs.crit_overlay_pref = CRIT_OVERLAY_DARK
+		to_chat(src, SPAN_NOTICE("If in critical condition your vision will now be dark."))
+	prefs.save_preferences()
+
+/// Toggle in character preferences and toggle preferences to allow or disable flashing lights e.g. /obj/item/clothing/glasses/disco_fever and druggy status
+/client/proc/set_flashing_lights_pref()
+	var/result = tgui_alert(src, "Allow effects that could trigger epilepsy?", "Allow flashing lights?", list("Allow", "Disable"))
+	if(!result)
+		return
+	prefs.allow_flashing_lights_pref = result == "Allow"
+	to_chat(src, SPAN_NOTICE("Flashing lights (e.g. AR Goggles and Happy pills) are now [prefs.allow_flashing_lights_pref ? "allowed" : "disabled"]."))
+	if(!prefs.allow_flashing_lights_pref)
+		mob?.update_client_color_matrices() // Update immediately
+	prefs.save_preferences()
+
+CLIENT_VERB(toggle_tgui_say)
 	set name = "Toggle Say Input Style"
 	set category = "Preferences.UI"
-	set desc = "Toggle your Input Style"
+	set desc = "Toggle your Input Style."
 
 	var/result = tgui_alert(src, "Which input style do you want?", "Input Style", list("Modern", "Legacy"))
 	if(!result)
@@ -489,10 +552,10 @@
 	prefs.save_preferences()
 	update_special_keybinds()
 
-/client/verb/toggle_tgui_say_light_mode()
+CLIENT_VERB(toggle_tgui_say_light_mode)
 	set name = "Toggle Say Input Color"
 	set category = "Preferences.UI"
-	set desc = "Toggle your Input Color"
+	set desc = "Toggle your Input Color."
 
 	var/result = tgui_alert(src, "Which input color do you want?", "Input Style", list("Darkmode", "Lightmode"))
 	if(!result)
@@ -506,25 +569,56 @@
 	tgui_say?.load()
 	prefs.save_preferences()
 
-/client/verb/toggle_custom_cursors()
+CLIENT_VERB(toggle_custom_cursors)
 	set name = "Toggle Custom Cursors"
 	set category = "Preferences.UI"
-	set desc = "Toggle Custom Cursors"
+	set desc = "Toggle Custom Cursors."
 
 	do_toggle_custom_cursors()
 
 /client/proc/do_toggle_custom_cursors(mob/user)
-	var/result = tgui_alert(user, "Do you want custom cursors enabled?", "Custom Cursors", list("Yes", "No"))
+	var/result = tgui_alert(user, "Do you want custom cursors enabled?", "Custom Cursors", list("Yes", "No", "Enable Main Cursor", "Disable Main Cursor"))
 	if(!result)
 		return
-	if(result == "Yes")
-		prefs.custom_cursors = TRUE
-		to_chat(src, SPAN_NOTICE("You're now using custom cursors."))
-	else
-		prefs.custom_cursors = FALSE
-		to_chat(src, SPAN_NOTICE("You're no longer using custom cursors."))
+	switch(result)
+		if("Yes")
+			prefs.custom_cursors = TRUE
+			to_chat(src, SPAN_NOTICE("You're now using custom cursors."))
+			if(result == "Yes")
+				var/chosen_cursor = tgui_alert(user, "Which type of custom cursor?", "Custom Cursors", list("USCM", "Xenomorph", "UPP", "PMC", "TWE"))
+				if(!chosen_cursor)
+					return
+				switch(chosen_cursor)
+					if("USCM")// For anyone in the future who might add anything, all of the cursors need to be their own file. and the only icon inside it needs to be renamed to "all" for byond to work with it
+						prefs.chosen_pointer = 'icons/effects/mouse_pointer/uscm.dmi'
+					if("Xenomorph")
+						prefs.chosen_pointer = 'icons/effects/mouse_pointer/xeno.dmi'
+					if("UPP")
+						prefs.chosen_pointer = 'icons/effects/mouse_pointer/upp.dmi'
+					if("PMC")
+						prefs.chosen_pointer = 'icons/effects/mouse_pointer/wy.dmi'
+					if("TWE")
+						prefs.chosen_pointer = 'icons/effects/mouse_pointer/twe.dmi'
+				prefs.save_preferences()
+				user.update_cursor()
+		if("No")
+			prefs.custom_cursors = FALSE
+			to_chat(src, SPAN_NOTICE("You're no longer using custom cursors."))
+			mouse_pointer_icon = initial(mouse_pointer_icon)
+			prefs.save_preferences()
+		if("Enable Main Cursor")
+			prefs.main_cursor = TRUE
+			to_chat(src, SPAN_NOTICE("Your main cursor will now be customized."))
+			prefs.save_preferences()
+		if("Disable Main Cursor")
+			to_chat(src, SPAN_NOTICE("Your main cursor will no longer be customized."))
+			prefs.main_cursor = FALSE
+			prefs.save_preferences()
 
-/client/verb/toggle_auto_viewport_fit()
+
+	prefs.save_preferences()
+
+CLIENT_VERB(toggle_auto_viewport_fit)
 	set name = "Toggle Auto Viewport Fit"
 	set category = "Preferences.UI"
 
@@ -536,7 +630,7 @@
 		to_chat(src, SPAN_NOTICE("No longer auto fitting viewport."))
 	prefs.save_preferences()
 
-/client/verb/toggle_adaptive_zooming()
+CLIENT_VERB(toggle_adaptive_zooming)
 	set name = "Toggle Adaptive Zooming"
 	set category = "Preferences.UI"
 
@@ -562,7 +656,7 @@
 	set category = "Preferences"
 	set desc = "Shows ghost-related preferences."
 
-	add_verb(src, ghost_prefs_verbs)
+	add_verb(src, GLOB.ghost_prefs_verbs)
 	remove_verb(src, /client/proc/show_ghost_preferences)
 
 /client/proc/hide_ghost_preferences() // Hides ghost-related preferences.
@@ -570,13 +664,13 @@
 	set category = "Preferences"
 	set desc = "Hides ghost-related preferences."
 
-	remove_verb(src, ghost_prefs_verbs)
+	remove_verb(src, GLOB.ghost_prefs_verbs)
 	add_verb(src, /client/proc/show_ghost_preferences)
 
 /client/proc/toggle_ghost_hivemind()
 	set name = "Toggle GhostHivemind"
 	set category = "Preferences.Ghost"
-	set desc = "Toggle seeing all chatter from the Xenomorph Hivemind"
+	set desc = "Toggle seeing all chatter from the Xenomorph Hivemind."
 	prefs.toggles_chat ^= CHAT_GHOSTHIVEMIND
 	to_chat(src,SPAN_BOLDNOTICE( "As a ghost, you will [(prefs.toggles_chat & CHAT_GHOSTHIVEMIND) ? "now see chatter from the Xenomorph Hivemind" : "no longer see chatter from the Xenomorph Hivemind"]."))
 	prefs.save_preferences()
@@ -596,7 +690,7 @@
 /client/proc/toggle_ghost_ears()
 	set name = "Toggle GhostEars"
 	set category = "Preferences.Ghost"
-	set desc = "Toggle Between seeing all mob speech, and only speech of nearby mobs"
+	set desc = "Toggle between seeing all mob speech, and only speech of nearby mobs."
 	prefs.toggles_chat ^= CHAT_GHOSTEARS
 	to_chat(src, SPAN_BOLDNOTICE("As a ghost, you will now [(prefs.toggles_chat & CHAT_GHOSTEARS) ? "see all speech in the world" : "only see speech from nearby mobs"]."))
 	prefs.save_preferences()
@@ -604,7 +698,7 @@
 /client/proc/toggle_ghost_sight()
 	set name = "Toggle GhostSight"
 	set category = "Preferences.Ghost"
-	set desc = "Toggle Between seeing all mob emotes, and only emotes of nearby mobs"
+	set desc = "Toggle between seeing all mob emotes, and only emotes of nearby mobs."
 	prefs.toggles_chat ^= CHAT_GHOSTSIGHT
 	to_chat(src, SPAN_BOLDNOTICE("As a ghost, you will now [(prefs.toggles_chat & CHAT_GHOSTSIGHT) ? "see all emotes in the world" : "only see emotes from nearby mobs"]."))
 	prefs.save_preferences()
@@ -612,9 +706,25 @@
 /client/proc/toggle_ghost_radio()
 	set name = "Toggle GhostRadio"
 	set category = "Preferences.Ghost"
-	set desc = "Toggle between hearing all radio chatter, or only from nearby speakers"
+	set desc = "Toggle between hearing all radio chatter, or only from nearby speakers."
 	prefs.toggles_chat ^= CHAT_GHOSTRADIO
 	to_chat(src,SPAN_BOLDNOTICE( "As a ghost, you will now [(prefs.toggles_chat & CHAT_GHOSTRADIO) ? "hear all radio chat in the world" : "only hear from nearby speakers"]."))
+	prefs.save_preferences()
+
+/client/proc/toggle_ghost_spyradio()
+	set name = "Toggle GhostSpyRadio"
+	set category = "Preferences.Ghost"
+	set desc = "Toggle between hearing listening devices or not."
+	prefs.toggles_chat ^= CHAT_LISTENINGBUG
+	to_chat(src,SPAN_BOLDNOTICE( "As a ghost, you will [(prefs.toggles_chat & CHAT_LISTENINGBUG) ? "now" : "no longer"] hear listening devices as a ghost."))
+	prefs.save_preferences()
+
+/client/proc/toggle_ghost_announce_clarity()
+	set name = "Toggle Ghost Announce Clarity"
+	set category = "Preferences.Ghost"
+	set desc = "Toggle between seeing announcements always in full clarity, or with the current clarity for the observed z-level."
+	prefs.toggles_chat ^= CHAT_GHOSTANNOUNCECLARITY
+	to_chat(src, SPAN_BOLDNOTICE("As a ghost, you will now see announcements in [(prefs.toggles_chat & CHAT_GHOSTANNOUNCECLARITY) ? "full clarity always" : "partial clarity if applicable"]."))
 	prefs.save_preferences()
 
 /client/proc/toggle_ghost_hud()
@@ -622,7 +732,20 @@
 	set category = "Preferences.Ghost"
 	set desc = "Use to change which HUDs you want to have by default when you become an observer."
 
-	var/hud_choice = tgui_input_list(usr, "Choose a HUD to toggle", "Toggle HUD prefs", list("Medical HUD", "Security HUD", "Squad HUD", "Xeno Status HUD", "Faction UPP HUD", "Faction Wey-Yu HUD", "Faction RESS HUD", "Faction CLF HUD"))
+	var/list/hud_options = list(
+		"Medical HUD" = MOB_HUD_MEDICAL_OBSERVER,
+		"Security HUD" = MOB_HUD_SECURITY_ADVANCED,
+		"Squad HUD" = MOB_HUD_FACTION_OBSERVER,
+		"Xeno Status HUD" = MOB_HUD_XENO_STATUS,
+		"Faction UPP HUD" = MOB_HUD_FACTION_UPP,
+		"Faction Wey-Yu HUD" = MOB_HUD_FACTION_WY,
+		"Faction TWE HUD" = MOB_HUD_FACTION_TWE,
+		"Faction CLF HUD" = MOB_HUD_FACTION_CLF,
+		"Faction WO HUD" = MOB_HUD_FACTION_WO,
+		"Faction Hyperdyne HUD" = MOB_HUD_FACTION_HC,
+	)
+
+	var/hud_choice = tgui_input_list(usr, "Choose a HUD to toggle", "Toggle HUD prefs", hud_options)
 	if(!hud_choice)
 		return
 	prefs.observer_huds[hud_choice] = !prefs.observer_huds[hud_choice]
@@ -633,30 +756,13 @@
 	if(!isobserver(usr))
 		return
 	var/mob/dead/observer/observer_user = usr
-	var/datum/mob_hud/H
-	switch(hud_choice)
-		if("Medical HUD")
-			H = huds[MOB_HUD_MEDICAL_OBSERVER]
-		if("Security HUD")
-			H = huds[MOB_HUD_SECURITY_ADVANCED]
-		if("Squad HUD")
-			H = huds[MOB_HUD_FACTION_OBSERVER]
-		if("Xeno Status HUD")
-			H = huds[MOB_HUD_XENO_STATUS]
-		if("Faction UPP HUD")
-			H = huds[MOB_HUD_FACTION_UPP]
-		if("Faction Wey-Yu HUD")
-			H = huds[MOB_HUD_FACTION_WY]
-		if("Faction TWE HUD")
-			H = huds[MOB_HUD_FACTION_TWE]
-		if("Faction CLF HUD")
-			H = huds[MOB_HUD_FACTION_CLF]
+	var/datum/mob_hud/hud = GLOB.huds[hud_options[hud_choice]]
 
 	observer_user.HUD_toggled[hud_choice] = prefs.observer_huds[hud_choice]
 	if(observer_user.HUD_toggled[hud_choice])
-		H.add_hud_to(observer_user, observer_user)
+		hud.add_hud_to(observer_user, observer_user)
 	else
-		H.remove_hud_from(observer_user, observer_user)
+		hud.remove_hud_from(observer_user, observer_user)
 
 /client/proc/toggle_ghost_health_scan()
 	set name = "Toggle Health Scan"
@@ -676,7 +782,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/pick_ghost_orbit()
 	set name = "Pick Ghost Orbit Shape"
 	set category = "Preferences.Ghost"
-	set desc = "Toggle in what manner you orbit mobs while a ghost"
+	set desc = "Toggle in what manner you orbit mobs while a ghost."
 	var/new_orbit = tgui_input_list(src, "Choose your ghostly orbit:", "Ghost Customization", GLOB.ghost_orbits)
 	if(!new_orbit)
 		return
@@ -700,7 +806,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 	set name = "Show Combat Chat Prefs"
 	set desc = "Shows additional chat preferences for combat and ghost messages."
 
-	add_verb(src, combat_chat_prefs_verbs)
+	add_verb(src, GLOB.combat_chat_prefs_verbs)
 	remove_verb(src, /client/proc/show_combat_chat_preferences)
 
 /client/proc/hide_combat_chat_preferences() // Hides additional chat logs preferences.
@@ -708,13 +814,13 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 	set name = "Hide Combat Chat Prefs"
 	set desc = "Hides additional chat preferences for combat and ghost messages."
 
-	remove_verb(src, combat_chat_prefs_verbs)
+	remove_verb(src, GLOB.combat_chat_prefs_verbs)
 	add_verb(src, /client/proc/show_combat_chat_preferences)
 
 /client/proc/toggle_chat_shooting()
 	set name = "Toggle Firing Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about weapon fire"
+	set desc = ".Enable or Disable messages informing about weapon fire."
 	prefs.chat_display_preferences ^= CHAT_TYPE_WEAPON_USE
 	to_chat(src,SPAN_BOLDNOTICE( "As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_WEAPON_USE) ? "see all weapon fire messages" : "never see weapon fire messages"]."))
 	prefs.save_preferences()
@@ -722,7 +828,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/toggle_chat_xeno_attack()
 	set name = "Toggle Xeno Attack Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about xeno attacks"
+	set desc = ".Enable or Disable messages informing about xeno attacks."
 	prefs.chat_display_preferences ^= CHAT_TYPE_XENO_COMBAT
 	to_chat(src, SPAN_BOLDNOTICE("As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_XENO_COMBAT) ? "see all xeno attack messages" : "never see xeno attack messages"]."))
 	prefs.save_preferences()
@@ -730,7 +836,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/toggle_chat_xeno_armor()
 	set name = "Toggle Xeno Armor Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about xeno armor"
+	set desc = ".Enable or Disable messages informing about xeno armor."
 	prefs.chat_display_preferences ^= CHAT_TYPE_ARMOR_DAMAGE
 	to_chat(src, SPAN_BOLDNOTICE("As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_ARMOR_DAMAGE) ? "see all xeno armor messages" : "never see xeno armor messages"]."))
 	prefs.save_preferences()
@@ -738,7 +844,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/toggle_chat_someone_hit()
 	set name = "Toggle Someone Hit Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about someone being hit"
+	set desc = ".Enable or Disable messages informing about someone being hit."
 	prefs.chat_display_preferences ^= CHAT_TYPE_TAKING_HIT
 	to_chat(src,SPAN_BOLDNOTICE( "As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_TAKING_HIT) ? "see all player hit messages" : "never see player hit messages"]."))
 	prefs.save_preferences()
@@ -746,7 +852,7 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/toggle_chat_you_hit()
 	set name = "Toggle You Hit Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about you being hit"
+	set desc = ".Enable or Disable messages informing about you being hit."
 	prefs.chat_display_preferences ^= CHAT_TYPE_BEING_HIT
 	to_chat(src,SPAN_BOLDNOTICE( "As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_BEING_HIT) ? "see you being hit messages" : "never see you being hit messages"]."))
 	prefs.save_preferences()
@@ -754,27 +860,29 @@ GLOBAL_LIST_INIT(ghost_orbits, list(GHOST_ORBIT_CIRCLE, GHOST_ORBIT_TRIANGLE, GH
 /client/proc/toggle_chat_you_pain()
 	set name = "Toggle Pain Messages"
 	set category = "Preferences.Combat"
-	set desc = ".Enable or Disable messages informing about you being in pain"
+	set desc = ".Enable or Disable messages informing about you being in pain."
 	prefs.chat_display_preferences ^= CHAT_TYPE_PAIN
 	to_chat(src, SPAN_BOLDNOTICE("As a player, you will now [(prefs.chat_display_preferences & CHAT_TYPE_PAIN) ? "see you being in pain messages" : "never see you being in pain messages"]."))
 	prefs.save_preferences()
 
-var/list/combat_chat_prefs_verbs = list(
+GLOBAL_LIST_INIT(combat_chat_prefs_verbs, list(
 	/client/proc/toggle_chat_shooting,
 	/client/proc/toggle_chat_xeno_attack,
 	/client/proc/toggle_chat_xeno_armor,
 	/client/proc/toggle_chat_someone_hit,
 	/client/proc/toggle_chat_you_hit,
 	/client/proc/toggle_chat_you_pain,
-	/client/proc/hide_combat_chat_preferences)
+	/client/proc/hide_combat_chat_preferences))
 
-var/list/ghost_prefs_verbs = list(
+GLOBAL_LIST_INIT(ghost_prefs_verbs, list(
 	/client/proc/toggle_ghost_ears,
 	/client/proc/toggle_ghost_sight,
 	/client/proc/toggle_ghost_radio,
+	/client/proc/toggle_ghost_spyradio,
+	/client/proc/toggle_ghost_announce_clarity,
 	/client/proc/toggle_ghost_hivemind,
 	/client/proc/deadchat,
 	/client/proc/toggle_ghost_hud,
 	/client/proc/toggle_ghost_health_scan,
 	/client/proc/pick_ghost_orbit,
-	/client/proc/hide_ghost_preferences)
+	/client/proc/hide_ghost_preferences))

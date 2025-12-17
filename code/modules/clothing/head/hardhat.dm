@@ -3,6 +3,10 @@
 	desc = "A piece of headgear used in dangerous working conditions to protect the head. Comes with a built-in flashlight."
 	icon_state = "hardhat0_yellow"
 	item_state = "hardhat0_yellow"
+	icon = 'icons/obj/items/clothing/hats/hardhats.dmi'
+	item_icons = list(
+		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hardhats.dmi'
+	)
 	light_range = 4
 	light_power = 2
 	var/hardhat_color = "yellow" //Determines used sprites: hardhat[on]_[hardhat_color]
@@ -57,13 +61,14 @@
 		return
 
 	set_light_on(toggle_on)
+
+	update_icon()
+
 	if(user == loc)
 		user.update_inv_head()
 
 	for(var/datum/action/current_action as anything in actions)
 		current_action.update_button_icon()
-
-	update_icon()
 
 /obj/item/clothing/head/hardhat/attack_alien(mob/living/carbon/xenomorph/attacking_xeno)
 	if(!can_be_broken)
@@ -86,12 +91,17 @@
 	hardhat_color = "red"
 	name = "firefighter helmet"
 	gas_transfer_coefficient = 0.01
-	permeability_coefficient = 0.01
+
 	flags_inventory = NOPRESSUREDMAGE|BLOCKSHARPOBJ|COVERMOUTH|ALLOWINTERNALS|COVEREYES|BLOCKGASEFFECT|ALLOWREBREATH|ALLOWCPR
 	flags_heat_protection = BODY_FLAG_HEAD|BODY_FLAG_FACE|BODY_FLAG_EYES
 	flags_cold_protection = BODY_FLAG_HEAD|BODY_FLAG_FACE|BODY_FLAG_EYES
 	max_heat_protection_temperature = FIRE_HELMET_MAX_HEAT_PROT
 	min_cold_protection_temperature = ICE_PLANET_MIN_COLD_PROT
+
+/obj/item/clothing/head/hardhat/white/alt
+	icon_state = "hardhat0_white_alt"
+	hardhat_color = "white_alt"
+	name = "Jùtóu Combine mining helmet"
 
 /obj/item/clothing/head/hardhat/white
 	icon_state = "hardhat0_white"
@@ -104,3 +114,7 @@
 	icon_state = "hardhat0_dblue"
 	hardhat_color = "dblue"
 
+/obj/item/clothing/head/hardhat/red/kelland
+	icon_state = "hardhat0_red"
+	hardhat_color = "red"
+	name = "kelland-mining hard hat"

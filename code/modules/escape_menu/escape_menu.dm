@@ -2,7 +2,7 @@ GLOBAL_LIST_EMPTY(escape_menus)
 
 /// Opens the escape menu.
 /// Verb, hardcoded to Escape, set in the client skin.
-/client/verb/open_escape_menu()
+CLIENT_VERB(open_escape_menu)
 	set name = "Open Escape Menu"
 	set hidden = TRUE
 
@@ -13,7 +13,7 @@ GLOBAL_LIST_EMPTY(escape_menus)
 	if (!isnull(current_escape_menu))
 		qdel(current_escape_menu)
 		return
-
+	SEND_SIGNAL(src, COMSIG_CLIENT_ESCAPE_MENU_OPEN)
 	reset_held_keys()
 
 	new /datum/escape_menu(src)
@@ -49,7 +49,7 @@ GLOBAL_LIST_EMPTY(escape_menus)
 	show_page()
 
 	RegisterSignal(client, COMSIG_PARENT_QDELETING, PROC_REF(on_client_qdel))
-	RegisterSignal(client, COMSIG_CLIENT_MOB_LOGIN, PROC_REF(on_client_mob_login))
+	RegisterSignal(client, COMSIG_CLIENT_MOB_LOGGED_IN, PROC_REF(on_client_mob_login))
 
 	if (!isnull(ckey))
 		GLOB.escape_menus[ckey] = src

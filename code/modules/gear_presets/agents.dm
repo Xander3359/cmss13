@@ -16,8 +16,8 @@
 		ACCESS_MARINE_MAINT,
 	)
 	assignment = JOB_STOWAWAY
-	rank = JOB_STOWAWAY
-	paygrade = "???"
+	job_title = JOB_STOWAWAY
+	paygrades = list("???" = JOB_PLAYTIME_TIER_0)
 	role_comm_title = "???"
 	skills = /datum/skills/civilian/survivor
 
@@ -68,8 +68,8 @@
 		ACCESS_UPP_LEADERSHIP,
 	)
 	assignment = JOB_UPP_REPRESENTATIVE
-	rank = JOB_UPP_REPRESENTATIVE
-	paygrade = "CR"
+	job_title = JOB_UPP_REPRESENTATIVE
+	paygrades = list(PAY_SHORT_CREP = JOB_PLAYTIME_TIER_0)
 	role_comm_title = "UPP Rep."
 	skills = /datum/skills/civilian/survivor
 
@@ -104,19 +104,19 @@
 		ACCESS_TWE_LEADERSHIP,
 	)
 	assignment = JOB_TWE_REPRESENTATIVE
-	rank = JOB_TWE_REPRESENTATIVE
-	paygrade = "CR"
+	job_title = JOB_TWE_REPRESENTATIVE
+	paygrades = list(PAY_SHORT_CREP = JOB_PLAYTIME_TIER_0)
 	role_comm_title = "TWE Rep."
 	skills = /datum/skills/civilian/survivor
 
 /datum/equipment_preset/twe/representative/load_name(mob/living/carbon/human/new_human, randomise)
 	new_human.gender = MALE
+
 	var/datum/preferences/A = new()
 	A.randomize_appearance(new_human)
-	var/random_name
-	if(new_human.gender == MALE)
-		random_name = "[pick(first_names_male_dutch)] [pick(last_names_clf)]"
-		new_human.f_style = "Shaved"
+
+	var/random_name = "[capitalize(pick(GLOB.first_names_male_dutch))] [capitalize(pick(GLOB.last_names_clf))]"
+	new_human.f_style = "Shaved"
 
 	new_human.change_real_name(new_human, random_name)
 	new_human.age = rand(17,35)

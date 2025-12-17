@@ -1,33 +1,30 @@
 /datum/chem_property/special
 	rarity = PROPERTY_DISABLED
 	category = PROPERTY_TYPE_ANOMALOUS
-	value = 6
-
+	value = 8
+//IF YOU ADD A NEW LEGENADRY INTENDED FOR RESEARCH NORMAL LOOP, MAKE SURE TO ADD TO LEGENDARY PROPERTY LIST DEFINE
 /datum/chem_property/special/boosting
 	name = PROPERTY_BOOSTING
 	code = "BST"
-	description = "Boosts the potency of all other properties in this chemical when inside the body."
+	description = "Boosts the potency of all other properties in this chemical when inside the body by 0.5 levels for every level that this property has."
 	rarity = PROPERTY_LEGENDARY
 	category = PROPERTY_TYPE_METABOLITE
 
 /datum/chem_property/special/boosting/pre_process(mob/living/M)
-	return list(REAGENT_BOOST = level)
+	return list(REAGENT_BOOST = level * 0.5)
 
-/datum/chem_property/special/regulating
-	name = PROPERTY_REGULATING
-	code = "REG"
-	description = "The chemical regulates its own metabolization and can thus never cause overdosis."
+/datum/chem_property/special/optimized
+	name = PROPERTY_OPTIMIZED
+	code = "OPM"
+	description = "Chemical molecule is structured diffrently, resulting in more efficient and easy synthesis process."
 	rarity = PROPERTY_LEGENDARY
 	category = PROPERTY_TYPE_METABOLITE
-	max_level = 1
 
-/datum/chem_property/special/regulating/reset_reagent()
-	holder.flags = initial(holder.flags)
-	..()
-
-/datum/chem_property/special/regulating/update_reagent()
-	holder.flags |= REAGENT_CANNOT_OVERDOSE
-	..()
+/datum/chem_property/special/optimized/update_reagent()
+	var/datum/chemical_reaction/reaction_chem = GLOB.chemical_reactions_list[holder.id]
+	if(reaction_chem)
+		reaction_chem.result_amount = 2
+	. = ..()
 
 /datum/chem_property/special/hypergenetic
 	name = PROPERTY_HYPERGENETIC
@@ -53,7 +50,7 @@
 /datum/chem_property/special/hypergenetic/reaction_mob(mob/M, method=TOUCH, volume, potency)
 	if(!isxeno_human(M))
 		return
-	M.AddComponent(/datum/component/healing_reduction, -potency * volume * POTENCY_MULTIPLIER_LOW) //reduces heal reduction if present
+	M.AddComponent(/datum/component/status_effect/healing_reduction, -potency * volume * POTENCY_MULTIPLIER_LOW) //reduces heal reduction if present
 	if(ishuman(M)) //heals on contact with humans/xenos
 		var/mob/living/carbon/human/H = M
 		H.heal_limb_damage(potency * volume * POTENCY_MULTIPLIER_LOW)
@@ -85,7 +82,7 @@
 	name = PROPERTY_DNA_DISINTEGRATING
 	code = "DDI"
 	description = "Immediately disintegrates the DNA of all organic cells it comes into contact with. This property is highly valued by WY."
-	rarity = PROPERTY_LEGENDARY
+	rarity = PROPERTY_DISABLED
 	category = PROPERTY_TYPE_TOXICANT|PROPERTY_TYPE_ANOMALOUS
 	value = 16
 
@@ -96,12 +93,28 @@
 		H.contract_disease(new /datum/disease/xeno_transformation(0),1) //This is the real reason PMCs are being sent to retrieve it.
 
 /datum/chem_property/special/DNA_Disintegrating/trigger()
-	SSticker.mode.get_specific_call("Weyland-Yutani Goon (Chemical Investigation Squad)", TRUE, FALSE, holder.name)
-	chemical_data.update_credits(10)
+	SSticker.mode.get_specific_call(/datum/emergency_call/goon/chem_retrieval, TRUE, FALSE, holder.name) // "Weyland-Yutani Goon (Chemical Investigation Squad)"
+	GLOB.chemical_data.update_credits(10)
 	message_admins("The research department has discovered DNA_Disintegrating in [holder.name] adding 10 bonus tech points.")
 	var/datum/techtree/tree = GET_TREE(TREE_MARINE)
 	tree.add_points(10)
 	ai_announcement("NOTICE: Encrypted data transmission received from USCSS Royce. Shuttle inbound.")
+
+/datum/chem_property/special/regulating
+	name = PROPERTY_REGULATING
+	code = "REG"
+	description = "The chemical regulates its metabolization and can never cause an overdose."
+	rarity = PROPERTY_LEGENDARY
+	category = PROPERTY_TYPE_METABOLITE
+	max_level = 1
+
+/datum/chem_property/special/regulating/reset_reagent()
+	holder.flags = initial(holder.flags)
+	..()
+
+/datum/chem_property/special/regulating/update_reagent()
+	holder.flags |= REAGENT_CANNOT_OVERDOSE
+	..()
 
 /datum/chem_property/special/ciphering
 	name = PROPERTY_CIPHERING
@@ -126,6 +139,13 @@
 		A.hivenumber = hivenumber
 		A.faction = hive.internal_faction
 
+/datum/chem_property/special/encrypted
+	name = PROPERTY_ENCRYPTED
+	code = "ENC"
+	description = "This extremely complex chemical structure contains a cipher that appears to be missing a few parts to complete the process."
+	rarity = PROPERTY_DISABLED
+	category = PROPERTY_TYPE_ANOMALOUS
+
 /datum/chem_property/special/ciphering/predator
 	name = PROPERTY_CIPHERING_PREDATOR
 	code = "PCI"
@@ -144,7 +164,7 @@
 	if((E.flags_embryo & FLAG_EMBRYO_PREDATOR) && E.hivenumber == GLOB.hive_datum[level])
 		return
 
-	E.visible_message(SPAN_DANGER("\the [E] rapidly mutates"))
+	E.visible_message(SPAN_DANGER("\the [E] rapidly mutates."))
 
 	playsound(E, 'sound/effects/attackblob.ogg', 25, TRUE)
 
@@ -285,12 +305,24 @@
 	for(var/datum/internal_organ/I in H.internal_organs)
 		M.apply_internal_damage(-0.5 * potency * delta_time, I)
 
+/datum/chem_property/special/omnipotent/reaction_hydro_tray(obj/structure/machinery/portable_atmospherics/hydroponics/processing_tray, potency, volume)
+	. = ..()
+	if(!processing_tray.seed)
+		return
+	processing_tray.nutrilevel += 0.5*(potency*2)*volume
+	processing_tray.weedlevel += -2.5*(potency*2)*volume
+	processing_tray.pestlevel += -2.5*(potency*2)*volume
+	processing_tray.plant_health += 1*(potency*2)*volume
+	processing_tray.yield_mod += 1*(potency*2)*volume
+	processing_tray.mutation_mod += 1*(potency*2)*volume
+
+
 /datum/chem_property/special/radius
 	name = PROPERTY_RADIUS
 	code = "RAD"
 	description = "Controls the radius of a fire, using unknown means"
 	rarity = PROPERTY_ADMIN
-	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_ANOMALOUS
+	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_UNADJUSTABLE
 	value = 666
 
 /datum/chem_property/special/radius/reset_reagent()
@@ -314,7 +346,7 @@
 	code = "INT"
 	description = "Controls the intensity of a fire, using unknown means"
 	rarity = PROPERTY_ADMIN
-	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_ANOMALOUS
+	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_UNADJUSTABLE
 	value = 666
 
 /datum/chem_property/special/intensity/reset_reagent()
@@ -336,7 +368,7 @@
 	code = "DUR"
 	description = "Controls the duration of a fire, using unknown means"
 	rarity = PROPERTY_ADMIN
-	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_ANOMALOUS
+	category = PROPERTY_TYPE_REACTANT|PROPERTY_TYPE_UNADJUSTABLE
 	value = 666
 
 /datum/chem_property/special/duration/reset_reagent()
@@ -351,21 +383,4 @@
 
 	holder.durationfire += 1 * level
 	holder.durationmod += 0.1 * level
-	..()
-
-/datum/chem_property/special/firepenetrating
-	name = PROPERTY_FIRE_PENETRATING
-	code = "PTR"
-	description = "Gives the chemical a unique, anomalous combustion chemistry, causing the flame to react with flame-resistant material and obliterate through it."
-	rarity = PROPERTY_LEGENDARY
-	category = PROPERTY_TYPE_REACTANT
-	value = 8
-	max_level = 1
-
-/datum/chem_property/special/firepenetrating/reset_reagent()
-	holder.fire_penetrating = initial(holder.fire_penetrating)
-	..()
-
-/datum/chem_property/special/firepenetrating/update_reagent()
-	holder.fire_penetrating = TRUE
 	..()

@@ -58,6 +58,13 @@
 			SPAN_NOTICE("[user] has constructed a prepared incision in [target]'s [surgery.affected_limb.display_name]."))
 
 		surgery.status += 2 //IMS completes all steps.
+
+		switch(target_zone) //forces application of overlays
+			if("chest")
+				target.overlays += image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
+			if("head")
+				target.overlays += image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
+
 	else if(tool_type == /obj/item/tool/surgery/scalpel/laser && prob(las_scalpel.bloodlessprob))
 		user.affected_message(target,
 			SPAN_NOTICE("You finish making a bloodless incision on [target]'s [surgery.affected_limb.display_name] with \the [tool]."),
@@ -223,6 +230,7 @@
 		/obj/item/attachable/bayonet = SURGERY_TOOL_MULT_AWFUL,
 		/obj/item/tool/surgery/scalpel = SURGERY_TOOL_MULT_AWFUL,
 		/obj/item/tool/kitchen/knife = SURGERY_TOOL_MULT_AWFUL,
+		/obj/item/weapon/throwing_knife = SURGERY_TOOL_MULT_AWFUL,
 		/obj/item/shard = SURGERY_TOOL_MULT_AWFUL
 		)
 	preop_sound = 'sound/surgery/retractor1.ogg'
@@ -253,11 +261,18 @@
 			h_his = "her"
 
 	switch(target_zone)
+		if("chest")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
+			user.affected_message(target,
+				SPAN_NOTICE("You hold the incision on [target]'s [surgery.affected_limb.display_name] open with \the [tool]."),
+				SPAN_NOTICE("[user] holds the incision on your [surgery.affected_limb.display_name] open with \the [tool]."),
+				SPAN_NOTICE("[user] holds the incision on [target]'s [surgery.affected_limb.display_name] open with \the [tool]."))
 		if("head")
 			user.affected_message(target,
 				SPAN_NOTICE("You hold the incision on [target]'s head open with \the [tool], exposing [h_his] skull."),
 				SPAN_NOTICE("[user] holds the incision on your head open with \the [tool], exposing your skull."),
 				SPAN_NOTICE("[user] holds the incision on [target]'s head open with \the [tool], exposing [h_his] skull."))
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
 		if("groin")
 			user.affected_message(target,
 				SPAN_NOTICE("You hold the incision on [target]'s lower abdomen open with \the [tool], exposing [h_his] viscera."),
@@ -281,15 +296,25 @@
 
 	switch(target_zone)
 		if("head")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
 			user.affected_message(target,
 				SPAN_WARNING("You tear open the incision on [target]'s head with \the [tool], exposing [h_his] skull!"),
 				SPAN_WARNING("[user] holds the incision on your head open with \the [tool], exposing your skull!"),
 				SPAN_WARNING("[user] holds the incision on [target]'s head open with \the [tool], exposing [h_his] skull!"))
+
 		if("groin")
 			user.affected_message(target,
 				SPAN_WARNING("You tear open the incision on [target]'s lower abdomen with \the [tool], exposing [h_his] viscera!"),
 				SPAN_WARNING("[user] tears the incision on your lower abdomen open with \the [tool], exposing your viscera!"),
 				SPAN_WARNING("[user] tears the incision on [target]'s lower abdomen open with \the [tool], exposing [h_his] viscera!"))
+
+		if("chest")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
+			user.affected_message(target,
+				SPAN_WARNING("You tear open the incision on [target]'s [surgery.affected_limb.display_name] with \the [tool]!"),
+				SPAN_WARNING("[user] tears the incision on your [surgery.affected_limb.display_name] open with \the [tool]!"),
+				SPAN_WARNING("[user] tears the incision on [target]'s [surgery.affected_limb.display_name] open with \the [tool]!"))
+
 		else
 			user.affected_message(target,
 				SPAN_WARNING("You tear open the incision on [target]'s [surgery.affected_limb.display_name] with \the [tool]!"),
@@ -347,6 +372,13 @@
 		SPAN_NOTICE("You cauterize the incision on [target]'s [surgery.affected_limb.display_name]."),
 		SPAN_NOTICE("[user] cauterizes the incision on your [surgery.affected_limb.display_name]."),
 		SPAN_NOTICE("[user] cauterizes the incision on [target]'s [surgery.affected_limb.display_name]."))
+	switch(target_zone)
+		if("head")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "skull_surgery_open")
+		if("chest")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "chest_surgery_open")
 
 	target.incision_depths[target_zone] = SURGERY_DEPTH_SURFACE
 	surgery.affected_limb.remove_all_bleeding(TRUE, FALSE)
@@ -390,7 +422,7 @@
 		/obj/item/tool/surgery/circular_saw = SURGERY_TOOL_MULT_IDEAL,
 		/obj/item/attachable/bayonet = SURGERY_TOOL_MULT_SUBOPTIMAL,
 		/obj/item/weapon/twohanded/fireaxe = SURGERY_TOOL_MULT_SUBSTITUTE,
-		/obj/item/weapon/claymore/mercsword/machete = SURGERY_TOOL_MULT_SUBSTITUTE,
+		/obj/item/weapon/sword/machete = SURGERY_TOOL_MULT_SUBSTITUTE,
 		/obj/item/tool/hatchet = SURGERY_TOOL_MULT_BAD_SUBSTITUTE,
 		/obj/item/tool/kitchen/knife/butcher = SURGERY_TOOL_MULT_BAD_SUBSTITUTE,
 	)
@@ -478,6 +510,13 @@
 		SPAN_NOTICE("You use \the [tool] to hold [target]'s [surgery.affected_limb.encased] open, exposing \his [brain ? "brain" : "vital organs"]."),
 		SPAN_NOTICE("[user] uses \the [tool] to hold your [surgery.affected_limb.encased] open, exposing your [brain ? "brain" : "vital organs"]."),
 		SPAN_NOTICE("[user] uses \the [tool] to hold [target]'s [surgery.affected_limb.encased] open, exposing \his [brain ? "brain" : "vital organs"]."))
+	switch(target_zone)
+		if("head")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "skull_surgery_open")
+		if("chest")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "chest_surgery_open")
 
 	target.incision_depths[target_zone] = SURGERY_DEPTH_DEEP
 	complete(target, surgery) //This finishes the surgery.
@@ -542,6 +581,13 @@
 		SPAN_NOTICE("You close [target]'s [surgery.affected_limb.encased]."),
 		SPAN_NOTICE("[user] closes your [surgery.affected_limb.encased]."),
 		SPAN_NOTICE("[user] closes [target]'s [surgery.affected_limb.encased]."))
+	switch(target_zone)
+		if("head")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "skull_surgery_open")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "skull_surgery_closed")
+		if("chest")
+			target.overlays -= image('icons/mob/humans/dam_human.dmi', "chest_surgery_open")
+			target.overlays += image('icons/mob/humans/dam_human.dmi', "chest_surgery_closed")
 
 	target.incision_depths[target_zone] = SURGERY_DEPTH_SHALLOW
 	log_interact(user, target, "[key_name(user)] closed [key_name(target)]'s [surgery.affected_limb.encased], beginning [surgery].")
@@ -572,6 +618,24 @@
 	preop_sound = 'sound/handling/clothingrustle1.ogg'
 	success_sound = 'sound/handling/bandage.ogg'
 	failure_sound = 'sound/surgery/organ2.ogg'
+
+//Use materials to mend bones, same as /datum/surgery_step/mend_bones
+/datum/surgery_step/mend_encased/extra_checks(mob/living/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery, repeating, skipped)
+	. = ..()
+	if(istype(tool, /obj/item/tool/surgery/bonegel)) //If bone gel, use some of the gel
+		var/obj/item/tool/surgery/bonegel/gel = tool
+		if(!gel.use_gel(gel.mend_bones_fix_cost))
+			to_chat(user, SPAN_BOLDWARNING("[gel] is empty!"))
+			return FALSE
+
+	else //Otherwise, use metal rods
+		var/obj/item/stack/rods/rods = user.get_inactive_hand()
+		if(!istype(rods))
+			to_chat(user, SPAN_BOLDWARNING("You need metal rods in your offhand to mend [target]'s [surgery.affected_limb.display_name] with [tool]."))
+			return FALSE
+		if(!rods.use(2)) //Refunded on failure
+			to_chat(user, SPAN_BOLDWARNING("You need more metal rods to mend [target]'s [surgery.affected_limb.display_name] with [tool]."))
+			return FALSE
 
 /datum/surgery_step/mend_encased/preop(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, tool_type, datum/surgery/surgery)
 	if(tool_type == /obj/item/tool/surgery/bonegel)
@@ -626,6 +690,11 @@
 	target.apply_damage(10, BRUTE, target_zone)
 	log_interact(user, target, "[key_name(user)] failed to mend [key_name(target)]'s [surgery.affected_limb.encased].")
 
+	if(tool_type != /obj/item/tool/surgery/bonegel)
+		to_chat(user, SPAN_NOTICE("The metal rods used on [target]'s [surgery.affected_limb.display_name] fall loose from their [surgery.affected_limb]."))
+		var/obj/item/stack/rods/rods = new /obj/item/stack/rods(get_turf(target))
+		rods.amount = 2 //Refund 2 rods on failure
+		rods.update_icon()
 
 /*Proof of concept. Functions but does nothing useful.
 If fiddling with, uncomment /mob/living/attackby surgery code also. It's pointless processing to have live without any surgeries for it to use.*/

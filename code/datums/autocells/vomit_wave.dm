@@ -37,7 +37,7 @@
 		return
 
 	// Propagate to cardinal directions
-	var/list/to_spread = cardinal.Copy()
+	var/list/to_spread = GLOB.cardinals.Copy()
 	for(var/datum/automata_cell/vomit_wave/C in neighbors)
 		to_spread -= get_dir(in_turf, C.in_turf)
 
@@ -60,7 +60,7 @@
 
 /client/proc/spawn_wave()
 	set name = "Spawn Cellauto Wave"
-	set desc = "suck some ass ok"
+	set desc = "Suck some ass ok."
 	set category = "Debug"
 
 	var/turf/T = get_turf(mob)

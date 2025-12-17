@@ -6,10 +6,10 @@
 	icon_state = "cat2"
 	icon_living = "cat2"
 	icon_dead = "cat2_dead"
-	speak = list("Meow!","Esp!","Purr!","HSSSSS")
+	speak = list("Meow!","Esp!","Purr!","HSSSSS!")
 	speak_emote = list("purrs", "meows")
-	emote_hear = list("meows","mews")
-	emote_see = list("shakes their head", "shivers")
+	emote_hear = list("meows.","mews.", "mrrps.")
+	emote_see = list("shakes their head.", "shivers.", "licks their paw.")
 	speak_chance = 1
 	turns_per_move = 5
 	meat_type = /obj/item/reagent_container/food/snacks/meat
@@ -32,7 +32,7 @@
 	)
 	/// The cat will 'play' with dead hunted targets near it until this counter reaches a certain value.
 	var/play_counter = 0
-	min_oxy = 16 //Require atleast 16kPA oxygen
+	min_oxy = 16 //Require at least 16kPA oxygen
 	minbodytemp = 223 //Below -50 Degrees Celcius
 	maxbodytemp = 323 //Above 50 Degrees Celcius
 	holder_type = /obj/item/holder/cat
@@ -59,18 +59,17 @@
 	if(stat == DEAD)
 		return ..()
 
-	if((src.loc) && isturf(src.loc))
-		if(stat != DEAD)
-			if(++miaow_counter >= rand(20, 30)) //Increase the meow variable each tick. Play it at random intervals.
-				playsound(loc, "cat_meow", 15, 1, 4)
-				miaow_counter = 0 //Reset the counter
-		if(!stat && !resting && !buckled)
+	if(isturf(loc))
+		if(++miaow_counter >= rand(20, 30)) //Increase the meow variable each tick. Play it at random intervals.
+			playsound(loc, "cat_meow", 15, 1, 4)
+			miaow_counter = 0 //Reset the counter
+		if(stat == CONSCIOUS && !resting && !buckled)
 			for(var/mob/prey in view(1,src))
 				if(is_type_in_list(prey, hunting_targets) && play_counter < 5 && prey.stat != DEAD)
 					var/mob/living/livingprey = prey
 
 					if(livingprey.stat == DEAD) //quick deadcheck
-						return
+						return ..()
 
 					play_counter++
 					visible_message(pick("[src] bites [livingprey]!","[src] toys with [livingprey].","[src] chomps on [livingprey]!"))
@@ -96,12 +95,13 @@
 			visible_message(pick("[src] hisses at [snack]!", "[src] mrowls fiercely!", "[src] eyes [snack] hungrily."))
 		break
 
-	if(!stat && !resting && !buckled)
+	if(stat == CONSCIOUS && !resting && !buckled)
 		handle_movement_target()
 
 /mob/living/simple_animal/cat/death()
 	. = ..()
-	if(!.) return //was already dead
+	if(!.)
+		return //was already dead
 	if(last_damage_data)
 		var/mob/user = last_damage_data.resolve_mob()
 		if(user)
@@ -134,7 +134,8 @@
 	if(!CAN_PICKUP(usr, src))
 		return ..()
 	var/mob/living/carbon/H = over_object
-	if(!istype(H) || !Adjacent(H) || H != usr) return ..()
+	if(!istype(H) || !Adjacent(H) || H != usr)
+		return ..()
 
 	if(H.a_intent == INTENT_HELP)
 		get_scooped(H)
@@ -177,7 +178,7 @@
 
 /mob/living/simple_animal/cat/kitten
 	name = "kitten"
-	desc = "D'aaawwww"
+	desc = "D'aaawwww."
 	icon_state = "kitten"
 	icon_living = "kitten"
 	icon_dead = "kitten_dead"

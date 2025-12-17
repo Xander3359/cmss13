@@ -22,50 +22,43 @@
 
 	playsound(src, unpacking_sound, 35)
 
-	/// Store the reference of the crate material
-	var/obj/item/stack/sheet/material_sheet
-	if(parts_type) // Create the crate material and store its reference
-		material_sheet = new parts_type(current_turf, 2)
+	// Move the contents back to the turf
+	for(var/atom/movable/moving_atom as anything in contents)
+		moving_atom.forceMove(current_turf)
 
-	// Move the objects back to the turf, above the crate material
-	for(var/atom/movable/moving_atom in contents)
-		var/atom/movable/current_atom = contents[1]
-		current_atom.forceMove(current_turf)
+	if(parts_type) // Create the crate material
+		new parts_type(current_turf, 2)
 
 	deconstruct(TRUE)
 
-	// Move the crate material to the bottom of the turf's contents
-	if(material_sheet)
-		move_to_bottom(material_sheet, current_turf)
-
-/// Custom proc to move an object to the bottom of the turf's contents
-/obj/structure/largecrate/proc/move_to_bottom(obj/moving_down, turf/current_turf)
-	if(!istype(moving_down) || !istype(current_turf))
-		return
-	for(var/atom/movable/checking_atom in current_turf.contents)
-		if(checking_atom != moving_down)
-			checking_atom.layer = max(checking_atom.layer, moving_down.layer + 0.1)
-
 /obj/structure/largecrate/deconstruct(disassembled = TRUE)
 	if(!disassembled)
-		new /obj/item/stack/sheet/wood(loc)
+		new parts_type(loc)
 	return ..()
 
 
 /obj/structure/largecrate/attackby(obj/item/W as obj, mob/user as mob)
 	if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
 		unpack()
-		user.visible_message(SPAN_NOTICE("[user] pries \the [src] open."), \
-							SPAN_NOTICE("You pry open \the [src]."))
+		user.visible_message(SPAN_NOTICE("[user] pries [src] open."),
+							SPAN_NOTICE("You pry open [src]."))
 	else
 		return attack_hand(user)
 
-/obj/structure/largecrate/attack_alien(mob/living/carbon/xenomorph/M)
-	M.animation_attack_on(src)
+/obj/structure/largecrate/attack_alien(mob/living/carbon/xenomorph/user)
+	user.animation_attack_on(src)
 	unpack()
-	M.visible_message(SPAN_DANGER("[M] smashes [src] apart!"), \
-					  SPAN_DANGER("You smash [src] apart!"), null, 5, CHAT_TYPE_XENO_COMBAT)
+	user.visible_message(SPAN_DANGER("[user] smashes [src] apart!"),
+					  SPAN_DANGER("We smash [src] apart!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 	return XENO_ATTACK_ACTION
+
+/obj/structure/largecrate/handle_tail_stab(mob/living/carbon/xenomorph/xeno)
+	if(unslashable)
+		return TAILSTAB_COOLDOWN_NONE
+	unpack()
+	xeno.visible_message(SPAN_DANGER("[xeno] smashes [src] apart with its tail!"),
+	SPAN_DANGER("We smash [src] apart with our tail!"), null, 5, CHAT_TYPE_XENO_COMBAT)
+	return TAILSTAB_COOLDOWN_NORMAL
 
 /obj/structure/largecrate/ex_act(power)
 	if(power >= EXPLOSION_THRESHOLD_VLOW)
@@ -89,7 +82,7 @@
 /obj/structure/largecrate/lisa/attackby(obj/item/W as obj, mob/user as mob) //ugly but oh well
 	if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
 		new /mob/living/simple_animal/corgi/Lisa(loc)
-	..()
+	. = ..()
 
 /obj/structure/largecrate/cow
 	name = "cow crate"
@@ -98,7 +91,7 @@
 /obj/structure/largecrate/cow/attackby(obj/item/W as obj, mob/user as mob)
 	if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
 		new /mob/living/simple_animal/cow(loc)
-	..()
+	. = ..()
 
 /obj/structure/largecrate/goat
 	name = "goat crate"
@@ -107,7 +100,7 @@
 /obj/structure/largecrate/goat/attackby(obj/item/W as obj, mob/user as mob)
 	if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
 		new /mob/living/simple_animal/hostile/retaliate/goat(loc)
-	..()
+	. = ..()
 
 /obj/structure/largecrate/chick
 	name = "chicken crate"
@@ -118,7 +111,7 @@
 		var/num = rand(4, 6)
 		for(var/i = 0, i < num, i++)
 			new /mob/living/simple_animal/chick(loc)
-	..()
+	. = ..()
 
 
 // CM largecrates
@@ -142,7 +135,8 @@
 
 /obj/structure/largecrate/random/Initialize()
 	. = ..()
-	if(!num_things) num_things = rand(0,3)
+	if(!num_things)
+		num_things = rand(0,3)
 
 	for(var/i in 1 to num_things)
 		var/obj/item/thing = pick(stuff)
@@ -251,9 +245,82 @@
 /obj/structure/largecrate/random/barrel
 	name = "blue barrel"
 	desc = "A blue storage barrel."
+	icon = 'icons/obj/structures/barrels.dmi'
 	icon_state = "barrel_blue"
+	var/strap_overlay = "+straps"
 	parts_type = /obj/item/stack/sheet/metal
 	unpacking_sound = 'sound/effects/metalhit.ogg'
+	var/straps = FALSE
+
+/obj/structure/largecrate/random/barrel/true_random
+	name = "barrel"
+	desc = "A barrel."
+	icon_state = "barrel_recolorable"
+	desc_lore = "From the future."
+	var/cap_doodad_state = ""
+	var/center_doodad_state = ""
+	var/color_override = null
+
+
+GLOBAL_LIST_EMPTY(rbarrel_cap_states) // Will be set up in generate_barrel_states
+GLOBAL_LIST_INIT(rbarrel_center_states, generate_barrel_states())
+GLOBAL_LIST_INIT(rbarrel_color_list, list(COLOR_SILVER,
+	COLOR_FLOORTILE_GRAY,
+	COLOR_MAROON,
+	COLOR_SOFT_RED,
+	COLOR_LIGHT_GRAYISH_RED,
+	COLOR_VERY_SOFT_YELLOW,
+	COLOR_OLIVE,
+	COLOR_DARK_MODERATE_LIME_GREEN,
+	COLOR_TEAL,
+	COLOR_MODERATE_BLUE,
+	COLOR_PURPLE,
+	COLOR_STRONG_VIOLET,
+	LIGHT_BEIGE,
+	COLOR_DARK_MODERATE_ORANGE,
+	COLOR_BROWN,
+	COLOR_DARK_BROWN))
+
+/proc/generate_barrel_states()
+	var/list/rbarrel_center_states = list()
+	var/icon/icon = new('icons/obj/structures/barrels.dmi')
+	var/list/icon_list = icon_states(icon)
+	for(var/state in icon_list)
+		if(findtext(state,"+cap"))
+			GLOB.rbarrel_cap_states.Add(state)
+		if(findtext(state,"+center"))
+			rbarrel_center_states.Add(state)
+	// We are returning rbarrel_center_states (rather than setting GLOB) because we are called by the global initializer to set it
+	return rbarrel_center_states
+
+/obj/structure/largecrate/random/barrel/true_random/Initialize()
+	. = ..()
+
+	var/image/center_coloring = image(icon, src,"+_center")
+
+	if(!color_override)
+		center_coloring.color = pick(GLOB.rbarrel_color_list)
+
+	center_coloring.appearance_flags = RESET_COLOR|KEEP_APART
+	overlays += center_coloring
+	if(prob(25))
+		cap_doodad_state = pick(GLOB.rbarrel_cap_states)
+		overlays += image(icon,src,cap_doodad_state)
+	if(prob(50))
+		center_doodad_state = pick(GLOB.rbarrel_center_states)
+		overlays += image(icon,src,center_doodad_state)
+
+/obj/structure/largecrate/random/barrel/Initialize()
+	. = ..()
+	if(overlays)
+		overlays.Cut()
+	if(straps)
+		overlays += image(icon,icon_state = "+straps")
+
+/obj/structure/largecrate/random/barrel/unpack()
+	if(overlays)
+		overlays.Cut()
+	. = ..()
 
 /obj/structure/largecrate/random/barrel/blue
 	name = "blue barrel"
@@ -264,6 +331,7 @@
 	name = "red barrel"
 	desc = "A red storage barrel."
 	icon_state = "barrel_red"
+	straps = TRUE//the original sprite had straps, anyway, this is a harmless instance
 
 /obj/structure/largecrate/random/barrel/green
 	name = "green barrel"
@@ -280,6 +348,26 @@
 	desc = "A white storage barrel."
 	icon_state = "barrel_white"
 
+/obj/structure/largecrate/random/barrel/medical
+	name = "white barrel"
+	desc = "A white storage barrel."
+	icon_state = "barrel_medical"
+
+/obj/structure/largecrate/random/barrel/black
+	name = "black barrel"
+	desc = "A black storage barrel."
+	icon_state = "barrel_wy"
+
+/obj/structure/largecrate/random/barrel/brown
+	name = "brown barrel"
+	desc = "A brown storage barrel."
+	icon_state = "barrel_tan"
+
+/obj/structure/largecrate/random/barrel/purewhite
+	name = "white barrel"
+	desc = "A white storage barrel."
+	icon_state = "barrel_purewhite"
+
 /obj/structure/largecrate/random/secure
 	name = "secure supply crate"
 	desc = "A secure crate."
@@ -288,7 +376,7 @@
 
 /obj/structure/largecrate/random/secure/attackby(obj/item/W as obj, mob/user as mob)
 	if (!strapped)
-		..()
+		. = ..()
 		return
 
 	if (!W.sharp)
@@ -349,20 +437,24 @@
 	num_mags = 5
 	name = "\improper Black market firearm crate"
 	stuff = list( /obj/item/weapon/gun/pistol/holdout = /obj/item/ammo_magazine/pistol/holdout,
+					/obj/item/weapon/gun/pistol/action = /obj/item/ammo_magazine/pistol/action,
 					/obj/item/weapon/gun/pistol/highpower = /obj/item/ammo_magazine/pistol/highpower,
 					/obj/item/weapon/gun/pistol/m1911 = /obj/item/ammo_magazine/pistol/m1911,
 					/obj/item/weapon/gun/pistol/heavy = /obj/item/ammo_magazine/pistol/heavy,
+					/obj/item/weapon/gun/pistol/l54 = /obj/item/ammo_magazine/pistol/l54,
+					/obj/item/weapon/gun/pistol/np92 = /obj/item/ammo_magazine/pistol/np92,
 					/obj/item/weapon/gun/revolver/small = /obj/item/ammo_magazine/revolver/small,
 					/obj/item/weapon/gun/revolver/cmb = /obj/item/ammo_magazine/revolver/cmb,
 					/obj/item/weapon/gun/shotgun/merc = /obj/item/ammo_magazine/handful/shotgun/buckshot,
 					/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb = /obj/item/ammo_magazine/handful/shotgun/buckshot,
+					/obj/item/weapon/gun/shotgun/double/with_stock = /obj/item/ammo_magazine/handful/shotgun/buckshot,
+					/obj/item/weapon/gun/lever_action/r4t = /obj/item/ammo_magazine/handful/lever_action,
 					/obj/item/weapon/gun/smg/mp27 = /obj/item/ammo_magazine/smg/mp27,
 					/obj/item/weapon/gun/smg/bizon = /obj/item/ammo_magazine/smg/bizon,
 					/obj/item/weapon/gun/smg/mac15 = /obj/item/ammo_magazine/smg/mac15,
 					/obj/item/weapon/gun/smg/uzi = /obj/item/ammo_magazine/smg/uzi,
 					/obj/item/weapon/gun/rifle/mar40/carbine = /obj/item/ammo_magazine/rifle/mar40,
 					/obj/item/weapon/gun/smg/pps43 = /obj/item/ammo_magazine/smg/pps43,
-					/obj/item/weapon/gun/rifle/l42a = /obj/item/ammo_magazine/rifle/l42a,
 					/obj/item/weapon/gun/rifle/l42a/abr40 = /obj/item/ammo_magazine/rifle/l42a/abr40,
 					/obj/item/weapon/gun/smg/mp5 = /obj/item/ammo_magazine/smg/mp5,
 					/obj/item/weapon/gun/rifle/m16 = /obj/item/ammo_magazine/rifle/m16,
@@ -463,10 +555,10 @@
 	new /obj/item/attachable/bayonet(src)
 	new /obj/item/weapon/throwing_knife(src)
 	new /obj/item/weapon/throwing_knife(src)
-	new /obj/item/storage/box/uscm_mre(src)
+	new /obj/item/storage/box/mre(src)
 	new /obj/item/storage/box/donkpockets(src)
-	new /obj/item/storage/box/MRE(src)
-	new /obj/item/storage/box/MRE(src)
+	new /obj/item/storage/box/mre(src)
+	new /obj/item/storage/box/mre(src)
 	new /obj/item/storage/box/pizza(src)
 
 

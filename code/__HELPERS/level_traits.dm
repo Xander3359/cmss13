@@ -1,4 +1,3 @@
-
 #define is_admin_level(z) SSmapping.level_trait(z, ZTRAIT_ADMIN)
 
 #define is_ground_level(z) SSmapping.level_trait(z, ZTRAIT_GROUND)
@@ -7,4 +6,4 @@
 
 #define is_reserved_level(z) SSmapping.level_trait(z, ZTRAIT_RESERVED)
 
-#define OBJECTS_CAN_REACH(Oa, Ob) (!(is_admin_level(Oa.z) || is_admin_level(Ob.z)) || Oa.z == Ob.z)
+#define OBJECTS_CAN_REACH(Oa, Ob) (!(should_block_game_interaction(Oa) || should_block_game_interaction(Ob)) || Oa.z == Ob.z)

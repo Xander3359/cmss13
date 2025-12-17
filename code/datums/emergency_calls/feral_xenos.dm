@@ -32,14 +32,14 @@
 
 	var/mob/living/carbon/xenomorph/new_xeno
 	if(!leader)
-		var/picked = pick(/mob/living/carbon/xenomorph/ravager, /mob/living/carbon/xenomorph/praetorian, /mob/living/carbon/xenomorph/crusher)
+		var/picked = pick(/mob/living/carbon/xenomorph/ravager, /mob/living/carbon/xenomorph/praetorian, /mob/living/carbon/xenomorph/crusher, /mob/living/carbon/xenomorph/despoiler)
 		new_xeno = new picked(spawn_loc)
 		leader = new_xeno
 		hive_leader = TRUE
 
 	else if(medics < max_medics)
 		medics++
-		var/picked = pick(/mob/living/carbon/xenomorph/drone, /mob/living/carbon/xenomorph/hivelord, /mob/living/carbon/xenomorph/burrower)
+		var/picked = pick(/mob/living/carbon/xenomorph/drone, /mob/living/carbon/xenomorph/hivelord)
 		new_xeno = new picked(spawn_loc)
 
 	else if(engineers < max_engineers)

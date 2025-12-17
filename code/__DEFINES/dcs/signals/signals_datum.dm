@@ -34,20 +34,14 @@
 #define COMSIG_ACTION_HIDDEN "action_hidden"
 /// From base of /datum/action/proc/unhide_from(): (mob/owner)
 #define COMSIG_ACTION_UNHIDDEN "action_unhidden"
+/// From base of /datum/action/proc/action_activate() : ()
+#define COMSIG_ACTION_ACTIVATED "action_activated"
 
 ///from /datum/component/bonus_damage_stack
 #define COMSIG_BONUS_DAMAGE "bonus_damage"
 
 /// from /datum/squad/proc/put_marine_in_squad
 #define COMSIG_SET_SQUAD "set_squad"
-
-// From /datum/surgery_step/tend_wounds/success()
-// Sent to command the limb's suture datum to add sutures, NOT when sutures are added.
-#define COMSIG_LIMB_ADD_SUTURES "limb_add_sutures"
-// Sent to check if the limb can be sutured.
-#define COMSIG_LIMB_SUTURE_CHECK "limb_suture_check"
-// Sent to remove all sutures.
-#define COMSIG_LIMB_REMOVE_SUTURES "limb_clear_sutures"
 
 //from /datum/nmtask/mapload/proc/initialize_boundary_contents()
 #define COMSIG_NIGHTMARE_TAINTED_BOUNDS "nightmare_tainted_bounds"
@@ -64,3 +58,10 @@
 
 // from /proc/update_living_queens() : /mob/living/carbon/xenomorph/queen
 #define COMSIG_HIVE_NEW_QUEEN "hive_new_queen"
+
+/// Fired on the lazy template datum when the template is finished loading. (list/loaded_atom_movables, list/loaded_turfs, list/loaded_areas)
+#define COMSIG_LAZY_TEMPLATE_LOADED "lazy_template_loaded"
+
+/// Fired on the item when someone tries to holster the item: /mob/living/carbon/human/verb/holster_verb
+#define COMSIG_ITEM_HOLSTER "item_holster"
+	#define COMPONENT_ITEM_HOLSTER_CANCELLED (1<<0)

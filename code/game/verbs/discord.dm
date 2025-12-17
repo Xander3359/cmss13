@@ -1,6 +1,10 @@
-/client/verb/discord_connect()
+CLIENT_VERB(discord_connect)
 	set name = "Discord Certify"
 	set category = "OOC"
+
+	if(IsGuestKey(key, TRUE))
+		to_chat(src, SPAN_WARNING("You must be connected as a BYOND key to connect to Discord."))
+		return FALSE
 
 	var/total_playtime = get_total_xeno_playtime(skip_cache = TRUE) + get_total_human_playtime(skip_cache = TRUE)
 
@@ -29,7 +33,7 @@
 	var/datum/entity/discord_identifier/new_identifier = DB_ENTITY(/datum/entity/discord_identifier)
 
 	var/not_unique = TRUE
-	var/long_list = operation_postfixes + operation_prefixes + operation_titles
+	var/long_list = GLOB.operation_postfixes + GLOB.operation_prefixes + GLOB.operation_titles
 	var/token
 
 	while(not_unique)

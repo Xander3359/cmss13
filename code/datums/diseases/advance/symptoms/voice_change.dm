@@ -3,7 +3,7 @@
 
 Voice Change
 
-	Very Very noticable.
+	Very Very noticeable.
 	Lowers resistance considerably.
 	Decreases stage speed.
 	Reduced transmittable.
@@ -35,13 +35,7 @@ Bonus
 			else
 				if(ishuman(M))
 					var/mob/living/carbon/human/H = M
-					var/random_name = ""
-					switch(H.gender)
-						if(MALE)
-							random_name = pick(first_names_male)
-						else
-							random_name = pick(first_names_female)
-					random_name += " [pick(last_names)]"
+					var/random_name = random_name(H.gender)
 					H.SetSpecialVoice(random_name)
 
 	return

@@ -2,7 +2,7 @@
 
 /datum/equipment_preset/dutch
 	name = JOB_DUTCH_RIFLEMAN
-	paygrade = "DTC"
+	paygrades = list(PAY_SHORT_DTC = JOB_PLAYTIME_TIER_0)
 	assignment = JOB_DUTCH_RIFLEMAN
 	flags = EQUIPMENT_PRESET_EXTRA
 	faction = FACTION_DUTCH
@@ -11,20 +11,26 @@
 
 /datum/equipment_preset/dutch/New()
 	..()
-	rank = assignment
+	job_title = assignment
 
 /datum/equipment_preset/dutch/load_name(mob/living/carbon/human/new_human, randomise)
-	new_human.gender = pick(60;MALE,40;FEMALE)
+	new_human.gender = pick(MALE, FEMALE)
+
 	var/datum/preferences/human = new()
 	human.randomize_appearance(new_human)
-	var/random_name
-	if(new_human.gender == MALE)
-		random_name = "[pick(first_names_male_dutch)] [pick(last_names)]"
-		new_human.f_style = "5 O'clock Shadow"
-	else
-		random_name = "[pick(first_names_female_dutch)] [pick(last_names)]"
 
-	new_human.change_real_name(new_human, random_name)
+	var/first_name
+	var/last_name = capitalize(pick(GLOB.last_names))
+	switch(new_human.gender)
+		if(FEMALE)
+			first_name = capitalize(pick(GLOB.first_names_female_dutch))
+		if(PLURAL, NEUTER) // Not currently possible
+			first_name = capitalize(pick(MALE, FEMALE) == MALE ? pick(GLOB.first_names_male_dutch) : pick(GLOB.first_names_female_dutch))
+		else // MALE
+			first_name = capitalize(pick(GLOB.first_names_male_dutch))
+			new_human.f_style = "5 O'clock Shadow"
+
+	new_human.change_real_name(new_human, "[first_name] [last_name]")
 	new_human.age = rand(25,35)
 	new_human.r_hair = rand(10,30)
 	new_human.g_hair = rand(10,30)
@@ -35,8 +41,6 @@
 	idtype = /obj/item/card/id/dogtag
 
 /datum/equipment_preset/dutch/load_gear(mob/living/carbon/human/new_human)
-
-
 	new_human.equip_to_slot_or_del(new /obj/item/clothing/head/helmet/marine/veteran/dutch(new_human), WEAR_HEAD)
 	new_human.equip_to_slot_or_del(new /obj/item/storage/fancy/cigarettes/lucky_strikes(new_human), WEAR_IN_HELMET)
 	new_human.equip_to_slot_or_del(new /obj/item/tool/lighter/zippo(new_human), WEAR_IN_HELMET)
@@ -83,7 +87,7 @@
 
 /datum/equipment_preset/dutch/minigun
 	name = JOB_DUTCH_MINIGUNNER
-	paygrade = "DTCMG"
+	paygrades = list(PAY_SHORT_DTCMG = JOB_PLAYTIME_TIER_0)
 	assignment = JOB_DUTCH_MINIGUNNER
 	flags = EQUIPMENT_PRESET_EXTRA
 
@@ -116,7 +120,7 @@
 
 /datum/equipment_preset/dutch/flamer
 	name = JOB_DUTCH_FLAMETHROWER
-	paygrade = "DTCF"
+	paygrades = list(PAY_SHORT_DTCF = JOB_PLAYTIME_TIER_0)
 	assignment = JOB_DUTCH_FLAMETHROWER
 	flags = EQUIPMENT_PRESET_EXTRA
 
@@ -137,7 +141,7 @@
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/pistol/m1911(new_human), WEAR_IN_ACCESSORY)
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/pistol/m1911(new_human), WEAR_IN_ACCESSORY)
 	new_human.equip_to_slot_or_del(new /obj/item/storage/large_holster/fuelpack(new_human), WEAR_BACK)
-	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/flamer/M240T(new_human), WEAR_IN_BACK)
+	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/flamer/m240/spec(new_human), WEAR_IN_BACK)
 	new_human.equip_to_slot_or_del(new /obj/item/storage/belt/marine/dutch/m16/ap(new_human), WEAR_WAIST)
 	new_human.equip_to_slot_or_del(new /obj/item/clothing/gloves/marine/veteran(new_human), WEAR_HANDS)
 	new_human.equip_to_slot_or_del(new /obj/item/storage/pouch/flamertank(new_human), WEAR_L_STORE)
@@ -150,7 +154,7 @@
 
 /datum/equipment_preset/dutch/medic
 	name = JOB_DUTCH_MEDIC
-	paygrade = "DTCM"
+	paygrades = list(PAY_SHORT_DTCM = JOB_PLAYTIME_TIER_0)
 	assignment = JOB_DUTCH_MEDIC
 	flags = EQUIPMENT_PRESET_EXTRA
 
@@ -193,7 +197,7 @@
 
 /datum/equipment_preset/dutch/arnie
 	name = "Dutch's Dozen - Arnold"
-	paygrade = "ARN"
+	paygrades = list(PAY_SHORT_DTCA = JOB_PLAYTIME_TIER_0)
 	assignment = JOB_DUTCH_ARNOLD
 	flags = EQUIPMENT_PRESET_EXTRA
 

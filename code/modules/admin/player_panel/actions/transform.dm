@@ -114,6 +114,11 @@ GLOBAL_LIST_INIT(pp_transformables, list(
 	color = "purple"
 	),
 	list(
+	name = XENO_CASTE_DESPOILER,
+	key = /mob/living/carbon/xenomorph/despoiler,
+	color = "purple"
+	),
+	list(
 	name = XENO_CASTE_BOILER,
 	key = /mob/living/carbon/xenomorph/boiler,
 	color = "purple"
@@ -140,6 +145,11 @@ GLOBAL_LIST_INIT(pp_transformables, list(
 	name = XENO_CASTE_PREDALIEN,
 	key = /mob/living/carbon/xenomorph/predalien,
 	color = "purple"
+	),
+	list(
+	name = XENO_CASTE_KING,
+	key = /mob/living/carbon/xenomorph/king,
+	color="purple"
 	)
 	),
 

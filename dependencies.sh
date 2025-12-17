@@ -1,23 +1,23 @@
-#!/bin/bash
+#!/bin/sh
 
 #Project dependencies file
 #Final authority on what's required to fully build the project
 
 # byond version
-export BYOND_MAJOR=514
-export BYOND_MINOR=1588
+export BYOND_MAJOR=516
+export BYOND_MINOR=1661
 
 #rust_g git tag
-export RUST_G_VERSION=2.1.0
+export RUST_G_VERSION=3.3.0
 
 #node version
-export NODE_VERSION=14
-export NODE_VERSION_PRECISE=14.16.1
+export NODE_VERSION_LTS=22.14.0
+
+# Bun version
+export BUN_VERSION=1.2.18
 
 # SpacemanDMM git tag
-export SPACEMAN_DMM_VERSION=suite-1.7.2
+export SPACEMAN_DMM_VERSION=suite-1.11
 
 # Python version for mapmerge and other tools
-export PYTHON_VERSION=3.7.9
-
-export OPENDREAM_VERSION=0.2.0
+export PYTHON_VERSION=3.11.9

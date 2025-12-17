@@ -10,7 +10,6 @@
 	var/speak_exclamation = "declares"
 	var/speak_query = "queries"
 	var/pose //Yes, now AIs can pose too.
-	var/obj/item/device/camera/siliconcam/aiCamera = null //photography
 	var/local_transmit //If set, can only speak to others of the same type within a short range.
 
 	var/med_hud = MOB_HUD_MEDICAL_ADVANCED //Determines the med hud to use
@@ -35,19 +34,20 @@
 /mob/living/silicon/drop_held_items()
 	return
 
-/mob/living/silicon/emp_act(severity)
+/mob/living/silicon/emp_act(severity, datum/cause_data/cause_data)
+	. = ..()
 	switch(severity)
 		if(1)
-			src.take_limb_damage(20)
+			take_limb_damage(20)
 			apply_effect(rand(5,10), STUN)
 		if(2)
-			src.take_limb_damage(10)
+			take_limb_damage(10)
 			apply_effect(rand(1,5), STUN)
-	flash_eyes(1, TRUE, type = /atom/movable/screen/fullscreen/flash/noise)
+	flash_eyes(EYE_PROTECTION_FLAVOR, TRUE, light_type = /atom/movable/screen/fullscreen/flash/noise)
 
 	to_chat(src, SPAN_DANGER("<B>*BZZZT*</B>"))
 	to_chat(src, SPAN_DANGER("Warning: Electromagnetic pulse detected."))
-	..()
+	log_emp(src, cause_data)
 
 /mob/living/silicon/stun_effect_act(stun_amount, agony_amount)
 	return //immune
@@ -61,18 +61,11 @@
 /mob/living/silicon/apply_effect(effect = 0, effecttype = STUN, blocked = 0)
 	return 0//The only effect that can hit them atm is flashes and they still directly edit so this works for now
 
-/proc/islinked(mob/living/silicon/robot/bot, mob/living/silicon/ai/ai)
-	if(!istype(bot) || !istype(ai))
-		return 0
-	if (bot.connected_ai == ai)
-		return 1
-	return 0
-
 
 // this function shows health in the Status panel
 /mob/living/silicon/proc/show_system_integrity()
 	if(!stat)
-		stat(null, text("System integrity: [round((health/maxHealth)*100)]%"))
+		stat(null, text("System integrity: [floor((health/maxHealth)*100)]%"))
 	else
 		stat(null, text("Systems nonfunctional"))
 
@@ -83,20 +76,15 @@
 
 // this function displays the shuttles ETA in the status panel if the shuttle has been called
 /mob/living/silicon/proc/show_emergency_shuttle_eta()
-	if(EvacuationAuthority)
-		var/eta_status = EvacuationAuthority.get_status_panel_eta()
+	if(SShijack)
+		var/eta_status = SShijack.get_evac_eta()
 		if(eta_status)
-			stat(null, "Evacuation: [eta_status]")
+			stat(null, "Evacuation Goal: [eta_status]")
 
 
 // this function displays the stations manifest in a separate window
 /mob/living/silicon/proc/show_station_manifest()
-	var/dat
-	dat += "<h4>Crew Manifest</h4>"
-	dat += GLOB.data_core.get_manifest(1) // make it monochrome
-	dat += "<br>"
-	src << browse(dat, "window=airoster")
-	onclose(src, "airoster")
+	GLOB.crew_manifest.open_ui(src)
 
 //can't inject synths
 /mob/living/silicon/can_inject(mob/user, error_msg)
@@ -132,7 +120,7 @@
 	for(var/datum/language/L in languages)
 		dat += "<b>[L.name] (:[L.key])</b><br/>Speech Synthesizer: <i>[(L in speech_synthesizer_langs)? "YES":"NOT SUPPORTED"]</i><br/>[L.desc]<br/><br/>"
 
-	src << browse(dat, "window=checklanguage")
+	src << browse(HTML_SKELETON(dat), "window=checklanguage")
 	return
 
 
@@ -148,12 +136,12 @@
 	var/HUD_nbr = 1
 	switch(hud_choice)
 		if("Medical HUD")
-			H = huds[MOB_HUD_MEDICAL_OBSERVER]
+			H = GLOB.huds[MOB_HUD_MEDICAL_OBSERVER]
 		if("Security HUD")
-			H = huds[MOB_HUD_SECURITY_ADVANCED]
+			H = GLOB.huds[MOB_HUD_SECURITY_ADVANCED]
 			HUD_nbr = 2
 		if("Squad HUD")
-			H = huds[MOB_HUD_FACTION_USCM]
+			H = GLOB.huds[MOB_HUD_FACTION_MARINE]
 			HUD_nbr = 3
 		else
 			return
@@ -188,21 +176,21 @@
 	..()
 	SSmob.living_misc_mobs += src
 
-/mob/living/silicon/ex_act(severity)
+/mob/living/silicon/ex_act(severity, direction, datum/cause_data/cause_data, pierce=0, enviro=FALSE)
 	flash_eyes()
 
 	switch(severity)
 		if(0 to EXPLOSION_THRESHOLD_LOW)
 			if (stat != 2)
-				apply_damage(30, BRUTE)
+				apply_damage(30, BRUTE, enviro=enviro)
 		if(EXPLOSION_THRESHOLD_LOW to EXPLOSION_THRESHOLD_MEDIUM)
 			if (stat != 2)
-				apply_damage(60, BRUTE)
-				apply_damage(60, BURN)
+				apply_damage(60, BRUTE, enviro=enviro)
+				apply_damage(60, BURN, enviro=enviro)
 		if(EXPLOSION_THRESHOLD_MEDIUM to INFINITY)
 			if (stat != 2)
-				apply_damage(100, BRUTE)
-				apply_damage(100, BURN)
+				apply_damage(100, BRUTE, enviro=enviro)
+				apply_damage(100, BURN, enviro=enviro)
 				if(!anchored)
 					gib()
 

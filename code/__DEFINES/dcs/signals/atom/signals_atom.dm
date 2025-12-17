@@ -1,6 +1,7 @@
 /// From /atom/proc/Decorate
 #define COMSIG_ATOM_DECORATED "atom_decorated"
-
+//from SSatoms InitAtom - Only if the  atom was not deleted or failed initialization and has a loc
+#define COMSIG_ATOM_AFTER_SUCCESSFUL_INITIALIZED_ON "atom_init_success_on"
 ///from base of atom/setDir(): (old_dir, new_dir). Called before the direction changes.
 #define COMSIG_ATOM_DIR_CHANGE "atom_dir_change"
 
@@ -23,8 +24,8 @@
 ///from /atom/hitby(): (atom/movable/AM)
 #define COMSIG_ATOM_HITBY "atom_hitby"
 
-///from /turf/ChangeTurf
-#define COMSIG_ATOM_TURF_CHANGE "movable_turf_change"
+///from /turf/ChangeTurf: (atom/movable/source, turf/turf)
+#define COMSIG_ATOM_TURF_CHANGE "atom_turf_change"
 
 //from atom/set_light(): (l_range, l_power, l_color)
 #define COMSIG_ATOM_SET_LIGHT "atom_set_light"
@@ -51,3 +52,9 @@
 
 /// Called when an atom is mouse dropped on another atom, from /client/MouseDrop: (atom/dropped_onto)
 #define COMSIG_ATOM_DROP_ON "atom_drop_on"
+
+/// Called when an atom has emp_act called on it, from /atom/emp_act: (severity)
+#define COMSIG_ATOM_EMP_ACT "atom_emp_act"
+
+//from base of atom/Exited(): (atom/movable/exiting, direction)
+#define COMSIG_ATOM_EXITED "atom_exited"

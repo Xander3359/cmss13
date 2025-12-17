@@ -47,18 +47,6 @@ Global river status var, maybe
 Each var depends on others
 
 
-var/global/riverend_west = 0
-var/global/riverend_north = 0
-var/global/river_central = 0
-var/global/cannal = 0
-var/global/dam_underpass = 0
-var/global/south_river = 0
-var/global/south_filtration = 0
-var/global/east_river = 0
-var/global/east_filtration = 0
-var/global/south_riverstart = 0
-var/global/east_riverstart = 0
-
 /proc/filtration_check()
 	if(east_filtration)
 
@@ -139,7 +127,6 @@ var/global/east_riverstart = 0
 	if(isliving(A))
 		var/mob/living/M = A
 
-		// Inside a xeno for example
 		if(!istype(M.loc, /turf))
 			return
 
@@ -147,6 +134,9 @@ var/global/east_riverstart = 0
 			if(M.pulling)
 				to_chat(M, SPAN_WARNING("The current forces you to release [M.pulling]!"))
 				M.stop_pulling()
+
+		if(HAS_TRAIT(M, TRAIT_HAULED))
+			return
 
 		cause_damage(M)
 		START_PROCESSING(SSobj, src)
@@ -186,41 +176,43 @@ var/global/east_riverstart = 0
 	if(targets_present < 1)
 		STOP_PROCESSING(SSobj, src)
 
-/obj/effect/blocker/toxic_water/proc/cause_damage(mob/living/M)
-	if(M.stat == DEAD)
+/obj/effect/blocker/toxic_water/proc/cause_damage(mob/living/target)
+	if(target.stat == DEAD)
 		return
-	M.last_damage_data = create_cause_data("toxic water")
-	if(islarva(M))
-		M.apply_damage(2,BURN)
-	else if(isxeno(M) && !islarva(M))
-		M.apply_damage(34,BURN)
-	else if(isyautja(M))
-		M.apply_damage(0.5,BURN)
+	target.last_damage_data = create_cause_data("toxic water")
+	if(islarva(target))
+		target.apply_damage(2, BURN, enviro=TRUE)
+	else if(isxeno(target) && !islarva(target))
+		target.apply_damage(34, BURN, enviro=TRUE)
+	else if(isyautja(target))
+		target.apply_damage(0.5, BURN, enviro=TRUE)
 	else
 		var/dam_amount = 3
-		if(M.lying)
-			M.apply_damage(dam_amount,BURN)
-			M.apply_damage(dam_amount,BURN)
-			M.apply_damage(dam_amount,BURN)
-			M.apply_damage(dam_amount,BURN)
-			M.apply_damage(dam_amount,BURN)
+		if(target.body_position == LYING_DOWN)
+			target.apply_damage(dam_amount, BURN, enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, enviro=TRUE)
 		else
-			M.apply_damage(dam_amount,BURN,"l_leg")
-			M.apply_damage(dam_amount,BURN,"l_foot")
-			M.apply_damage(dam_amount,BURN,"r_leg")
-			M.apply_damage(dam_amount,BURN,"r_foot")
-			M.apply_damage(dam_amount,BURN,"groin")
-		M.apply_effect(20,IRRADIATE,0)
-		if( !issynth(M) ) to_chat(M, SPAN_DANGER("The water burns!"))
-	playsound(M, 'sound/bullets/acid_impact1.ogg', 10, 1)
+			target.apply_damage(dam_amount, BURN, "l_leg", enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, "l_foot", enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, "r_leg", enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, "r_foot", enviro=TRUE)
+			target.apply_damage(dam_amount, BURN, "groin", enviro=TRUE)
+		target.apply_effect(20,IRRADIATE,0)
+		if( !issynth(target) )
+			to_chat(target, SPAN_DANGER("The water burns!"))
+	playsound(target, 'sound/bullets/acid_impact1.ogg', 10, 1)
 
 
 /obj/effect/blocker/toxic_water/proc/disperse_spread(from_dir = 0)
 	if(dispersing || !toxic)
 		return
 
-	for(var/direction in alldirs)
-		if(direction == from_dir) continue //doesn't check backwards
+	for(var/direction in GLOB.alldirs)
+		if(direction == from_dir)
+			continue //doesn't check backwards
 
 		var/effective_spread_delay
 		switch(direction)
@@ -275,7 +267,7 @@ var/global/east_riverstart = 0
 
 /obj/structure/machinery/filtration_button
 	name = "\improper Filtration Activation"
-	icon = 'icons/obj/objects.dmi'
+	icon = 'icons/obj/structures/props/stationobjs.dmi'
 	icon_state = "launcherbtt"
 	desc = "Activates the filtration mechanism."
 	var/id = null
@@ -303,7 +295,7 @@ var/global/east_riverstart = 0
 	//var/area/A = get_area(src)
 	//A.ambience_exterior = 'sound/ambience/ambiatm1.ogg'
 
-	for(var/obj/structure/machinery/dispersal_initiator/M in machines)
+	for(var/obj/structure/machinery/dispersal_initiator/M in GLOB.machines)
 		if (M.id == src.id)
 			M.initiate()
 

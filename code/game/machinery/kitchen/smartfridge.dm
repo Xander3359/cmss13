@@ -2,6 +2,12 @@
 #define FRIDGE_WIRE_SHOOT_INV 2
 #define FRIDGE_WIRE_IDSCAN 3
 
+GLOBAL_LIST_INIT(fridge_wire_descriptions, flatten_numeric_alist(alist(
+		FRIDGE_WIRE_SHOCK = "Ground safety",
+		FRIDGE_WIRE_SHOOT_INV = "Dispenser motor control",
+		FRIDGE_WIRE_IDSCAN = "ID scanner",
+	)))
+
 #define FRIDGE_LOCK_COMPLETE 1
 #define FRIDGE_LOCK_ID 2
 #define FRIDGE_LOCK_NOLOCK 3
@@ -54,8 +60,8 @@
 	contents -= item
 	if(item_quants[item.name])
 		item_quants[item.name] -= item
-	if(is_in_network() && chemical_data.shared_item_storage[item.name])
-		chemical_data.shared_item_storage[item.name] -= item
+	if(is_in_network() && GLOB.chemical_data.shared_item_storage[item.name])
+		GLOB.chemical_data.shared_item_storage[item.name] -= item
 	qdel(item)
 
 /obj/structure/machinery/smartfridge/proc/accept_check(obj/item/O as obj)
@@ -72,11 +78,11 @@
 /obj/structure/machinery/smartfridge/power_change()
 	..()
 	if( !(stat & NOPOWER) )
-		src.ispowered = TRUE
+		ispowered = TRUE
 		icon_state = icon_on
 	else
 		spawn(rand(0, 15))
-			src.ispowered = FALSE
+			ispowered = FALSE
 			icon_state = icon_off
 
 //*******************
@@ -94,7 +100,7 @@
 		overlays.Cut()
 		if(panel_open)
 			overlays += image(icon, icon_panel)
-		nanomanager.update_uis(src)
+		SSnano.nanomanager.update_uis(src)
 		return
 
 	if(HAS_TRAIT(O, TRAIT_TOOL_MULTITOOL)||HAS_TRAIT(O, TRAIT_TOOL_WIRECUTTERS))
@@ -109,7 +115,7 @@
 	if(accept_check(O))
 		if(user.drop_held_item())
 			add_local_item(O)
-			user.visible_message(SPAN_NOTICE("[user] has added \the [O] to \the [src]."), \
+			user.visible_message(SPAN_NOTICE("[user] has added \the [O] to \the [src]."),
 								SPAN_NOTICE("You add \the [O] to \the [src]."))
 
 	else if(istype(O, /obj/item/storage/bag/plants))
@@ -117,15 +123,15 @@
 		var/plants_loaded = 0
 		for(var/obj/G in P.contents)
 			if(accept_check(G))
-				P.remove_from_storage(G,src)
+				P.remove_from_storage(G, src)
 				add_local_item(G)
 				plants_loaded++
 		if(plants_loaded)
 
-			user.visible_message( \
-				SPAN_NOTICE("[user] loads \the [src] with \the [P]."), \
+			user.visible_message(
+				SPAN_NOTICE("[user] loads \the [src] with \the [P]."),
 				SPAN_NOTICE("You load \the [src] with \the [P]."))
-			if(P.contents.len > 0)
+			if(length(P.contents) > 0)
 				to_chat(user, SPAN_NOTICE("Some items are refused."))
 
 	else if(!(O.flags_item & NOBLUDGEON)) //so we can spray, scan, c4 the machine.
@@ -157,7 +163,7 @@
 
 /obj/structure/machinery/smartfridge/proc/add_network_item(obj/item/O)
 	if(is_in_network())
-		add_item(chemical_data.shared_item_storage, O)
+		add_item(GLOB.chemical_data.shared_item_storage, O)
 		return TRUE
 	return FALSE
 
@@ -184,10 +190,9 @@
 	.["transfer_mode"] = transfer_mode
 	.["locked"] = locked
 
-	var/list/wire_descriptions = get_wire_descriptions()
 	var/list/panel_wires = list()
-	for(var/wire = 1 to wire_descriptions.len)
-		panel_wires += list(list("desc" = wire_descriptions[wire], "cut" = isWireCut(wire)))
+	for(var/wire in 1 to length(GLOB.fridge_wire_descriptions))
+		panel_wires += list(list("desc" = GLOB.fridge_wire_descriptions[wire], "cut" = isWireCut(wire)))
 
 	.["electrical"] = list(
 		"electrified" = !COOLDOWN_FINISHED(src, electrified_cooldown),
@@ -232,9 +237,9 @@
 
 	var/list/networked_items = list()
 	if(is_in_network())
-		for (var/i=1 to length(chemical_data.shared_item_storage))
-			var/item_index = chemical_data.shared_item_storage[i]
-			var/list/item_list = chemical_data.shared_item_storage[item_index]
+		for (var/i=1 to length(GLOB.chemical_data.shared_item_storage))
+			var/item_index = GLOB.chemical_data.shared_item_storage[i]
+			var/list/item_list = GLOB.chemical_data.shared_item_storage[item_index]
 			var/count = length(item_list)
 			if(count < 1)
 				continue
@@ -295,7 +300,7 @@
 
 			var/list/target_list = item_quants
 			if(params["isLocal"] == 0)
-				target_list = chemical_data.shared_item_storage
+				target_list = GLOB.chemical_data.shared_item_storage
 
 			var/item_index = target_list[index]
 			var/list/item_list = target_list[item_index]
@@ -328,9 +333,9 @@
 			var/amount=params["amount"]
 
 			var/source = item_quants
-			var/target = chemical_data.shared_item_storage
+			var/target = GLOB.chemical_data.shared_item_storage
 			if(params["isLocal"] == 0)
-				source = chemical_data.shared_item_storage
+				source = GLOB.chemical_data.shared_item_storage
 				target = item_quants
 
 			var/item_index = source[index]
@@ -350,7 +355,7 @@
 		if("cutwire")
 			if(!panel_open)
 				return FALSE
-			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_ENGI))
+			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_TRAINED))
 				to_chat(usr, SPAN_WARNING("You don't understand anything about this wiring..."))
 				return FALSE
 			var/obj/item/held_item = user.get_held_item()
@@ -364,7 +369,7 @@
 		if("fixwire")
 			if(!panel_open)
 				return FALSE
-			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_ENGI))
+			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_TRAINED))
 				to_chat(usr, SPAN_WARNING("You don't understand anything about this wiring..."))
 				return FALSE
 			var/obj/item/held_item = user.get_held_item()
@@ -377,7 +382,7 @@
 		if("pulsewire")
 			if(!panel_open)
 				return FALSE
-			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_ENGI))
+			if(!skillcheck(usr, SKILL_ENGINEER, SKILL_ENGINEER_TRAINED))
 				to_chat(usr, SPAN_WARNING("You don't understand anything about this wiring..."))
 				return FALSE
 			var/obj/item/held_item = user.get_held_item()
@@ -395,13 +400,6 @@
 //*************
 //* Hacking
 //**************/
-
-/obj/structure/machinery/smartfridge/proc/get_wire_descriptions()
-	return list(
-		FRIDGE_WIRE_SHOCK   = "Ground safety",
-		FRIDGE_WIRE_SHOOT_INV  = "Dispenser motor control",
-		FRIDGE_WIRE_IDSCAN  = "ID scanner"
-	)
 
 /obj/structure/machinery/smartfridge/proc/cut(wire)
 	wires ^= getWireFlag(wire)

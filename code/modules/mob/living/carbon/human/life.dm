@@ -7,7 +7,7 @@
 		return
 
 	if(undefibbable && stat == DEAD || spawned_corpse)
-		GLOB.data_core.manifest_modify(real_name, WEAKREF(src), null, null, "*Deceased*")
+		GLOB.data_core.manifest_modify(real_name, WEAKREF(src), null, null, "Deceased")
 		SShuman.processable_human_list -= src
 		if(hardcore)
 			qdel(src) //We just delete the corpse on WO to keep things simple and lag-free
@@ -20,7 +20,7 @@
 
 	//Apparently, the person who wrote this code designed it so that
 	//blinded get reset each cycle and then get activated later in the
-	//code. Very ugly. I dont care. Moving this stuff here so its easy
+	//code. Very ugly. I don't care. Moving this stuff here so its easy
 	//to find it.
 
 	//TODO: separate this out
@@ -82,11 +82,14 @@
 	//Status updates, death etc.
 	handle_regular_status_updates() //Optimized a bit
 
-	update_canmove()
-
 	handle_regular_hud_updates()
-
-	pulse = handle_pulse()
 
 	if(!client && !mind && species)
 		species.handle_npc(src)
+
+/mob/living/carbon/human/set_stat(new_stat)
+	. = ..()
+	// Temporarily force triggering HUD updates so they apply immediately rather than on Life tick.
+	// Remove this once effects have been ported to trait signals (blinded, dazed, etc)
+	if(stat != .)
+		handle_regular_hud_updates()

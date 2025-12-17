@@ -1,7 +1,8 @@
+//mode datums at the bottom.
 #define MODE_AMPLIFY 1
 #define MODE_SUPPRESS 2
 #define MODE_RELATE 3
-#define MODE_CREATE 4
+#define MODE_ADD 4
 
 #define SIMULATION_FAILURE -1
 #define SIMULATION_STAGE_OFF 0
@@ -9,15 +10,15 @@
 #define SIMULATION_STAGE_WAIT 2
 #define SIMULATION_STAGE_3 3
 #define SIMULATION_STAGE_4 4
-#define SIMULATION_STAGE_5 5
-#define SIMULATION_STAGE_BEGIN 6
+#define SIMULATION_STAGE_BEGIN 5
 
 /obj/structure/machinery/chem_simulator
-	name = "Synthesis Simulator"
+	name = "synthesis simulator"
 	desc = "This computer uses advanced algorithms to perform simulations of reagent properties, for the purpose of calculating the synthesis required to make a new variant."
 	icon = 'icons/obj/structures/machinery/science_machines_64x32.dmi'
 	icon_state = "modifier"
 	active_power_usage = 1000
+	health = STRUCTURE_HEALTH_REINFORCED
 	layer = BELOW_OBJ_LAYER
 	density = TRUE
 	bound_x = 32
@@ -39,15 +40,6 @@
 	var/status_bar = "READY"
 	var/ready = FALSE
 
-	var/template_filter = PROPERTY_TYPE_ALL
-	var/complexity_editor = FALSE
-	var/creation_template
-	var/creation_complexity = list(CHEM_CLASS_COMMON, CHEM_CLASS_UNCOMMON, CHEM_CLASS_RARE)
-	var/creation_name = ""
-	var/creation_cost = 0
-	var/min_creation_cost = 0
-	var/creation_od_level = 10 //a cache for new_od_level when switching between modes
-
 	unslashable = TRUE
 	unacidable = TRUE
 
@@ -56,44 +48,43 @@
 	LAZYINITLIST(simulations)
 	LAZYINITLIST(property_costs)
 	LAZYINITLIST(recipe_targets)
-	LAZYINITLIST(creation_template)
+	AddElement(/datum/element/corp_label/wy)
 
 /obj/structure/machinery/chem_simulator/power_change()
 	..()
 	if(inoperable())
 		icon_state = "modifier_off"
-	nanomanager.update_uis(src) // update all UIs attached to src
 
 /obj/structure/machinery/chem_simulator/attackby(obj/item/B, mob/living/user)
 	if(!skillcheck(user, SKILL_RESEARCH, SKILL_RESEARCH_TRAINED))
 		to_chat(user, SPAN_WARNING("You have no idea how to use this."))
 		return
 	if(istype(B, /obj/item/paper/research_notes))
-		var/obj/item/paper/research_notes/N = B
-		if(!target || (mode == MODE_RELATE && !reference))
-			B = N.convert_to_chem_report()
+		var/obj/item/paper/research_notes/note = B
+		if(!target || (mode == MODE_RELATE || mode == MODE_ADD) && !reference && note.data)
+			B = note.convert_to_chem_report()
 		else
 			to_chat(user, SPAN_WARNING("Chemical data already inserted."))
 			return
 	if(istype(B, /obj/item/paper/research_report))
-		if(!target)
+		var/obj/item/paper/research_report/note = B
+		if(!target && note.data)
 			target = B
 			ready = check_ready()
-		else if(mode == MODE_RELATE && !reference)
-			target_property = ""
+		else if((mode == MODE_RELATE || mode == MODE_ADD) && !reference && note.data)
+			target_property = null
 			reference = B
 			ready = check_ready()
 		else
-			to_chat(user, SPAN_WARNING("Chemical data already inserted."))
+			to_chat(user, SPAN_WARNING("Chemical data [note.data ? "is already inserted" : "is refused"]"))
 			return
 	else
-		to_chat(user, SPAN_WARNING("The [src] refuses the [B]."))
+		to_chat(user, SPAN_WARNING("[src] refuses [B]."))
 		return
 	user.drop_inv_item_to_loc(B, src)
-	to_chat(user, SPAN_NOTICE("You insert [B] into the [src]."))
+	to_chat(user, SPAN_NOTICE("You insert [B] into [src]."))
 	flick("[icon_state]_reading",src)
 	update_costs()
-	nanomanager.update_uis(src) // update all UIs attached to src
 
 /obj/structure/machinery/chem_simulator/attack_hand(mob/user as mob)
 	if(inoperable())
@@ -101,256 +92,172 @@
 	if(!skillcheck(user, SKILL_RESEARCH, SKILL_RESEARCH_TRAINED))
 		to_chat(user, SPAN_WARNING("You have no idea how to use this."))
 		return
-	ui_interact(user)
+	tgui_interact(user)
 
-/obj/structure/machinery/chem_simulator/ui_interact(mob/user, ui_key = "main", datum/nanoui/ui = null, force_open = 0)
-	var/list/data = list(
-		"rsc_credits" = chemical_data.rsc_credits,
-		"target" = target,
-		"reference" = reference,
-		"mode" = mode,
-		"complexity_editor" = complexity_editor,
-		"property_costs" = property_costs,
-		"simulating" = simulating,
-		"status_bar" = status_bar,
-		"ready" = ready,
-		"od_lvl" = new_od_level,
-		"recipe_target" = recipe_target,
-		"recipe_targets" = list(),
-		"property_codings" = list()
-	)
+/obj/structure/machinery/chem_simulator/tgui_interact(mob/user, datum/tgui/ui) //death to the chem simulator! All Hail the new chem simulator!
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "ChemSimulator", "Chemical Simulator")
+		ui.open()
+
+/obj/structure/machinery/chem_simulator/ui_data(mob/user)
+	. = ..()
+	var/list/data = list()
+	data["status"] = status_bar
+	data["credits"] = GLOB.chemical_data.rsc_credits
+	ready = check_ready()
+	data["is_ready"] = ready
+	data["can_simulate"] = (ready && simulating == SIMULATION_STAGE_OFF)
+	data["can_eject_target"] = ((target ? TRUE : FALSE) && simulating == SIMULATION_STAGE_OFF)
+	data["can_eject_reference"] = ((reference ? TRUE : FALSE) && simulating == SIMULATION_STAGE_OFF)
+	data["is_picking_recipe"] = (simulating == SIMULATION_STAGE_FINAL)
+	data["lock_control"] = (simulating != SIMULATION_STAGE_OFF)
+	data["can_cancel_simulation"] = (simulating <= SIMULATION_STAGE_WAIT)
+	if(mode != MODE_ADD)
+		data["estimated_cost"] = (!target_property  ? "NULL" : property_costs[target_property.name])
+	else
+		data["estimated_cost"] = (!reference_property  ? "NULL" : property_costs[reference_property.name])
+	if(target?.data)
+		calculate_new_od_level()
+		data["od_level"] = new_od_level
+	data["chemical_name"] = (isnull(target) ? "CHEMICAL DATA NOT INSERTED" : target.data.name)
+	data["reference_name"] = (isnull(reference) ? "CHEMICAL DATA NOT INSERTED" : reference.data.name)
 
 	if(simulating == SIMULATION_STAGE_FINAL)
 		for(var/reagent_id in recipe_targets)
-			var/datum/reagent/R = chemical_reagents_list[reagent_id]
-			var/list/id_name[0]
-			id_name["[R.id]"] = R.name
-			data["recipe_targets"] += id_name
-
-	if(mode == MODE_CREATE)
-		data["creation_name"] = creation_name
-		data["creation_cost"] = creation_cost
-		data["complexity"] = complexity_to_string_list()
-
-		//List of all available properties
-		data["property_data_list"] = list()
-		for(var/datum/chem_property/P in chemical_data.research_property_data)
-			data["property_codings"][P.name] = P.code
-			if(template_filter && !check_bitflag(P.category, template_filter))
-				continue
-			data["property_data_list"][P.name] = P.level
-			data["property_data_list"] = sortAssoc(data["property_data_list"])
-		//List of enabled properties
-		data["target_property_list"] = list()
-		for(var/datum/chem_property/P in creation_template)
-			data["target_property_list"][P.name] = P.level
-			if(template_filter && !check_bitflag(P.category, template_filter))
-				continue
-			//Override the editor level with the enabled property level
-			data["property_data_list"][P.name] = P.level
-
-		data["template_filter"] = list(
-				"MED" = list(check_bitflag(template_filter, PROPERTY_TYPE_MEDICINE), PROPERTY_TYPE_MEDICINE),
-				"TOX" = list(check_bitflag(template_filter, PROPERTY_TYPE_TOXICANT), PROPERTY_TYPE_TOXICANT),
-				"STI" = list(check_bitflag(template_filter, PROPERTY_TYPE_STIMULANT), PROPERTY_TYPE_STIMULANT),
-				"REA" = list(check_bitflag(template_filter, PROPERTY_TYPE_REACTANT), PROPERTY_TYPE_REACTANT),
-				"IRR" = list(check_bitflag(template_filter, PROPERTY_TYPE_IRRITANT), PROPERTY_TYPE_IRRITANT),
-				"MET" = list(check_bitflag(template_filter, PROPERTY_TYPE_METABOLITE), PROPERTY_TYPE_METABOLITE)
-			)
-
-	else if(target && target.data && target.completed)
-		data["target_property_list"] = target.data.properties_to_assoc()
-		for(var/datum/chem_property/P in target.data.properties)
-			data["property_codings"][P.name] = P.code
-
-	if(reference && reference.data && reference.completed)
-		data["reference_property_list"] = reference.data.properties_to_assoc()
-		for(var/datum/chem_property/P in reference.data.properties)
-			data["property_codings"][P.name] = P.code
-
-	if(target_property)
-		data["target_property"] = target_property.name
-		data["target_info"] = target_property.description
-		data["target_categories"] = target_property.categories_to_string()
+			var/datum/reagent/recipe_option = GLOB.chemical_reagents_list[reagent_id]
+			data["reagent_option_data"] += list(list(
+				"id" = recipe_option.id,
+				"name" = recipe_option.name,
+			))
+	if(target && length(target?.data?.properties) && target.completed)
+		for(var/datum/chem_property/target_property_data in target.data.properties)
+			var/is_locked = FALSE
+			var/conflicting_tooltip = null
+			if(!isnull(reference_property))
+				if(LAZYACCESS(GLOB.conflicting_properties, reference_property.name) == target_property_data.name || LAZYACCESS(GLOB.conflicting_properties, target_property_data.name) == reference_property.name )
+					is_locked = TRUE
+					conflicting_tooltip = "This property conflicts with the selected reference property!"
+			data["target_data"] += list(list(
+				"code" = target_property_data.code,
+				"level" = target_property_data.level,
+				"name" = target_property_data.name,
+				"desc" = target_property_data.description,
+				"cost" = property_costs[target_property_data.name],
+				"is_locked" = is_locked,
+				"tooltip" = conflicting_tooltip,
+			))
 	else
-		data["target_info"] = ""
+		data["target_data"] = null
 
-	if(reference_property)
-		data["reference_property"] = reference_property.name
-		data["reference_info"] = reference_property.description
-		data["reference_categories"] = reference_property.categories_to_string()
+	if(reference && length(reference?.data?.properties) && reference.completed)
+		for(var/datum/chem_property/reference_property_data in reference.data.properties)
+			var/is_locked = FALSE
+			var/conflicting_tooltip = null
+			if(!isnull(target_property))
+				if(LAZYACCESS(GLOB.conflicting_properties, target_property.name) == reference_property_data.name || LAZYACCESS(GLOB.conflicting_properties, reference_property_data.name) == target_property.name )
+					is_locked = TRUE
+					conflicting_tooltip = "This property conflicts with the selected target property!"
+			data["reference_data"] += list(list(
+				"code" = reference_property_data.code,
+				"level" = reference_property_data.level,
+				"name" = capitalize_first_letters(reference_property_data.name),
+				"desc" = reference_property_data.description,
+				"cost" = property_costs[reference_property_data.name],
+				"is_locked" = is_locked,
+				"tooltip" = conflicting_tooltip,
+			))
 	else
-		data["reference_info"] = ""
+		data["reference_data"] = null
 
-	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
-	if(!ui)
-		ui = new(user, src, ui_key, "chem_simulator.tmpl", "Synthesis Simulator", 800, 550)
-		ui.set_initial_data(data)
-		ui.open()
+	return data
 
-/obj/structure/machinery/chem_simulator/Topic(href, href_list)
+/obj/structure/machinery/chem_simulator/ui_static_data(mob/user)
+	. = ..()
+	var/list/static_data = list()
+	for(var/modes in subtypesof(/datum/chemical_simulator_modes))
+		var/datum/chemical_simulator_modes/modes_datum = modes
+		static_data["mode_data"] += list(list(
+			"name" = modes_datum.name,
+			"desc" = modes_datum.desc,
+			"mode_id" = modes_datum.mode_id,
+			"icon_type" = modes_datum.icon_type
+		))
+	return static_data
+
+/obj/structure/machinery/chem_simulator/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
 		return
-	if(inoperable() || !ishuman(usr))
-		return
-	var/mob/living/carbon/human/user = usr
-	if(user.stat || user.is_mob_restrained() || !in_range(src, user))
-		return
-
-	if(mode == MODE_CREATE && chemical_data.has_new_properties)
-		update_costs()
-
-	if(href_list["simulate"] && ready)
-		simulating = SIMULATION_STAGE_BEGIN
-		status_bar = "COMMENCING SIMULATION"
-		icon_state = "modifier_running"
-		recipe_targets = list() //reset
-		start_processing()
-		if(mode == MODE_CREATE)
-			msg_admin_niche("[key_name(user)] has created the chemical: [creation_name]")
-	else if(href_list["ejectT"])
-		if(target)
-			if(!user.put_in_active_hand(target))
-				target.forceMove(loc)
-			target = null
-		target_property = null
-		stop_processing()
-		simulating = SIMULATION_STAGE_OFF
-		flick("[icon_state]_printing",src)
-	else if(href_list["ejectR"])
-		if(reference)
-			if(!user.put_in_active_hand(reference))
-				reference.forceMove(loc)
-			reference = null
-		reference_property = null
-		stop_processing()
-		simulating = SIMULATION_STAGE_OFF
-		flick("[icon_state]_printing",src)
-	else if(href_list["set_mode"])
-		if(mode == MODE_CREATE) //for when you set the mode away from MODE_CREATE
+	switch(action)
+		if("change_mode")
+			mode = params["mode_id"]
 			target_property = null
 			reference_property = null
-			complexity_editor = FALSE
-		switch(href_list["set_mode"])
-			if("amp")
-				mode = MODE_AMPLIFY
-			if("sup")
-				mode = MODE_SUPPRESS
-			if("rel")
-				mode = MODE_RELATE
-			if("cre")
-				mode = MODE_CREATE
+			update_costs()
+			if(mode == MODE_ADD)
 				target_property = null
-				reference_property = null
-		calculate_new_od_level()
-		if(mode == MODE_CREATE)
-			calculate_creation_cost()
-		update_costs()
-	else if(href_list["set_target"])
-		if(simulating)
-			return
-		if(mode == MODE_CREATE)
-			var/target_name = href_list["set_target"]
-			for(var/datum/chem_property/P in chemical_data.research_property_data)
-				if(P.name == target_name)
-					if(target_property && target_property.name == target_name)
-						//Toggle the property
-						if(LAZYISIN(creation_template, target_property))
-							target_property.level = 0
-							LAZYREMOVE(creation_template, target_property)
-						else
-							target_property.level = 1
-							LAZYADD(creation_template, target_property)
-						calculate_creation_cost()
-					else
-						target_property = P
-					break
-		else
-			target_property = target.data.get_property(href_list["set_target"])
-			calculate_new_od_level()
-		if(simulating)
+		if("eject_target")
+			if(target)
+				if(!ui.user.put_in_active_hand(target))
+					target.forceMove(loc)
+				target = null
+			target_property = null
+			stop_processing()
+			simulating = SIMULATION_STAGE_OFF
+			flick("[icon_state]_printing",src)
+		if("eject_reference")
+			if(reference)
+				if(!ui.user.put_in_active_hand(reference))
+					reference.forceMove(loc)
+				reference = null
+			reference_property = null
+			stop_processing()
+			flick("[icon_state]_printing",src)
+		if("select_target_property")
+			if(!target)
+				return
+			for(var/datum/chem_property/target_prop in target.data.properties)
+				if(target_prop.code != params["property_code"])
+					continue
+				target_property = target_prop
+			if(!target_property)
+				to_chat(ui.user, SPAN_WARNING("The [src] makes a suspicious wail."))
+				return
+		if("select_reference_property")
+			if(!reference)
+				return
+			for(var/datum/chem_property/reference_prop in reference.data.properties)
+				if(reference_prop.code != params["property_code"])
+					continue
+				reference_property = reference_prop
+			update_costs()
+			if(!reference_property)
+				to_chat(ui.user, SPAN_WARNING("The [src] makes a suspicious wail."))
+				return
+		if("simulate")
+			if(!ready)
+				return
+			simulating = SIMULATION_STAGE_BEGIN
+			status_bar = "COMMENCING SIMULATION"
+			icon_state = "modifier_running"
+			recipe_targets = list() //reset
+			start_processing()
+		if("submit_recipe_pick")
+			if(recipe_target)
+				return
+			if(params["reagent_picked"] in recipe_targets)
+				recipe_target = params["reagent_picked"]
+				finalize_simulation(chem_cache)
+			recipe_target = null
+		if("cancel_simulation")
 			stop_processing()
 			icon_state = "modifier"
 			simulating = SIMULATION_STAGE_OFF
-	else if(href_list["set_reference"])
-		reference_property = reference.data.get_property(href_list["set_reference"])
-		if(simulating)
-			stop_processing()
-			icon_state = "modifier"
-			simulating = SIMULATION_STAGE_OFF
-		update_costs()
-	else if(href_list["set_recipe_target"])
-		recipe_target = href_list["set_recipe_target"]
-	else if(href_list["stop_simulation"])
-		stop_processing()
-		icon_state = "modifier"
-		simulating = SIMULATION_STAGE_OFF
-	else if(href_list["finalize_simulation"] && recipe_target)
-		finalize_simulation(chem_cache)
-	//Template creation editor
-	else if(href_list["set_name"])
-		var/newname = input("Set name for template (2-20 characters)","[src]") as text
-		newname = reject_bad_name(newname, TRUE, 20, FALSE)
-		if(isnull(newname))
-			to_chat(user, "Bad name.")
-		else if(chemical_reagents_list[newname])
-			to_chat(user, "Name already taken.")
-		else
-			creation_name = newname
-	else if(href_list["set_level"] && target_property)
-		var/level_to_set = 1
-		if(chemical_data.clearance_level <= 2)
-			level_to_set = tgui_input_list(usr, "Set target level for [target_property.name]:","[src]", list(1,2,3,4))
-		else if(chemical_data.clearance_level <= 4)
-			level_to_set = tgui_input_list(usr, "Set target level for [target_property.name]:","[src]", list(1,2,3,4,5,6,7,8))
-		else
-			level_to_set = tgui_input_list(usr, "Set target level for [target_property.name]:","[src]", list(1,2,3,4,5,6,7,8,9,10))
-		if(!level_to_set)
+		if("keyboard_sound")//only exists to give sound
+			playsound(loc, pick('sound/machines/computer_typing1.ogg','sound/machines/computer_typing2.ogg','sound/machines/computer_typing3.ogg'), 5, 1)
 			return
-
-		target_property.level = level_to_set
-		if(target_property.max_level && target_property.level > target_property.max_level)
-			target_property.level = target_property.max_level
-			to_chat(user, "Max level for [target_property.name] is [target_property.max_level].")
-		calculate_creation_cost()
-	else if(href_list["set_od"])
-		var/od_to_set = tgui_input_list(usr, "Set new OD:", "[src]", list(5,10,15,20,25,30,35,40,45,50,55,60))
-		if(!od_to_set)
-			return
-		new_od_level = od_to_set
-		creation_od_level = od_to_set
-		calculate_creation_cost()
-	else if(href_list["set_filter"])
-		if(href_list["set_filter"] == "ALL")
-			template_filter = 0
-		else
-			var/flag_value = text2num(href_list["config_value"])
-			if(template_filter & flag_value)
-				template_filter &= ~flag_value
-			else
-				template_filter |= flag_value
-	else if(href_list["toggle_complexity_editor"])
-		complexity_editor = !complexity_editor
-	else if(href_list["set_complexity"])
-		var/slot = text2num(href_list["set_complexity"])
-		var/new_rarity = tgui_input_list(usr, "Set chemical rarity for complexity slot [slot]:","[src]", list("BASIC (+7)","COMMON (+4)","UNCOMMON (1)","RARE (-5)"))
-		if(!new_rarity)
-			return
-
-		switch(new_rarity)
-			if("BASIC (+7)")
-				creation_complexity[slot] = CHEM_CLASS_BASIC
-			if("COMMON (+4)")
-				creation_complexity[slot] = CHEM_CLASS_COMMON
-			if("UNCOMMON (1)")
-				creation_complexity[slot] = CHEM_CLASS_UNCOMMON
-			if("RARE (-5)")
-				creation_complexity[slot] = CHEM_CLASS_RARE
-		calculate_creation_cost()
-	ready = check_ready()
 	playsound(loc, pick('sound/machines/computer_typing1.ogg','sound/machines/computer_typing2.ogg','sound/machines/computer_typing3.ogg'), 5, 1)
-	nanomanager.update_uis(src)
 
 /obj/structure/machinery/chem_simulator/process()
 	if(inoperable())
@@ -358,117 +265,96 @@
 	if(simulating > SIMULATION_STAGE_OFF)
 		simulating = max(simulating - 1, SIMULATION_STAGE_FINAL)
 		switch(simulating)
-			if(SIMULATION_STAGE_5)
-				status_bar = pick("SIMULATING HUMANS","SIMULATING MONKEYS","SIMULATING BODILY FUNCTIONS","MEASURING PROPERTIES","INJECTING VIRTUAL HUMANS","TORTURING DIGITAL MONKEYS","EMULATING METABOLISM")
 			if(SIMULATION_STAGE_4)
 				status_bar = pick("SEARCHING FOR CHIMPANZEES","PLAYING CHESS WITH ARES","CONSULTING DOC","BLAMING GOD","SEARCHING FOR MY PURPOSE","SPYING ON JONES","DIVIDING BY NULL","EQUATING SPACE TIME")
 			if(SIMULATION_STAGE_3)
 				status_bar = pick("PREDICTING REACTION PATTERNS","CALCULATING OVERDOSE RATIOS","CALCULATING SYNTHESIS","CLOSING THE EVENTUALITY","COMPUTING REAGENT INTERPRETATIONS",)
 			if(SIMULATION_STAGE_WAIT)
-				var/datum/reagent/generated/C = new /datum/reagent/generated
-				if(mode == MODE_CREATE)
-					status_bar = "CREATION COMPLETE"
+				var/datum/reagent/generated/chemical_modfying = new /datum/reagent/generated
+				switch(mode)
+					if(MODE_AMPLIFY)
+						amplify(chemical_modfying)
+					if(MODE_SUPPRESS)
+						suppress(chemical_modfying)
+					if(MODE_RELATE)
+						relate(chemical_modfying)
+					if(MODE_ADD)
+						add(chemical_modfying)
+				if(!chemical_modfying.original_id)
+					chemical_modfying.original_id = target.data.id
+				encode_reagent(chemical_modfying)
+				if(chemical_modfying.id in simulations)
+					//We've already simulated this before, so we don't need to continue
+					chemical_modfying = GLOB.chemical_reagents_list[chemical_modfying.id]
+					print(chemical_modfying.id)
+					status_bar = "SIMULATION COMPLETE"
 					simulating = SIMULATION_STAGE_OFF
-					create(C)
+				else if(prepare_recipe_options())
+					chem_cache = chemical_modfying
+					status_bar = "ANALYSIS READY"
+					icon_state = "modifier_ready"
+					playsound(loc, 'sound/machines/twobeep.ogg', 15, 1)
 				else
-					switch(mode)
-						if(MODE_AMPLIFY)
-							amplify(C)
-						if(MODE_SUPPRESS)
-							suppress(C)
-						if(MODE_RELATE)
-							relate(C)
-					if(!C.original_id)
-						C.original_id = target.data.id
-					C.id = encode_reagent(C)
-					C.name = C.id
-					if(C.id in simulations)
-						//We've already simulated this before, so we don't need to continue
-						C = chemical_reagents_list[C.id]
-						print(C.id)
-						status_bar = "SIMULATION COMPLETE"
-						simulating = SIMULATION_STAGE_OFF
-					else if(prepare_recipe_options())
-						chem_cache = C
-						status_bar = "ANALYSIS READY"
-						icon_state = "modifier_ready"
-						playsound(loc, 'sound/machines/twobeep.ogg', 15, 1)
-					else
-						finalize_simulation(C)
+					finalize_simulation(chemical_modfying)
 	else
 		ready = check_ready()
 		stop_processing()
-	nanomanager.update_uis(src)
 
 /obj/structure/machinery/chem_simulator/proc/update_costs()
 	property_costs = list()
 	var/only_positive = TRUE
-	if(mode == MODE_CREATE)
-		for(var/datum/chem_property/P in chemical_data.research_property_data)
-			property_costs[P.name] = max(abs(P.value), 1)
-	else if(target && target.data && target.completed)
-		for(var/datum/chem_property/P in target.data.properties)
-			if(!isPositiveProperty(P))
-				only_positive = FALSE
-			if(P.category & PROPERTY_TYPE_ANOMALOUS)
-				property_costs[P.name] = P.level * PROPERTY_MULTIPLIER_ANOMALOUS
-				continue
-			switch(mode)
-				if(MODE_AMPLIFY)
-					property_costs[P.name] = max(min(P.level - 1, PROPERTY_COST_MAX), 1)
-				if(MODE_SUPPRESS)
-					property_costs[P.name] = 2
-				if(MODE_RELATE)
-					if(reference_property)
-						if(reference_property.category & PROPERTY_TYPE_ANOMALOUS)
-							property_costs[P.name] = P.level * 10
-						else if(reference_property.rarity < PROPERTY_RARE)
-							property_costs[P.name] = P.level
+	if(target && target.data && target.completed)
+		if(mode == MODE_ADD && reference?.completed)
+			var/total_target_value
+			for(var/datum/chem_property/reference_property in reference.data.properties)
+				property_costs[reference_property.name] = clamp(reference_property.value + reference_property.level - 1, 1, PROPERTY_COST_MAX)
+				if(length(target.data.properties) > 4)
+					property_costs[reference_property.name] += PROPERTY_MULTIPLIER_ADD_BULK
+			for(var/datum/chem_property/target_property in target.data.properties)
+				total_target_value += target_property.value
+				if(!isPositiveProperty(target_property))
+					only_positive = FALSE
+			if(total_target_value > 7)
+				for(var/property_penalty in property_costs)
+					property_costs[property_penalty] += PROPERTY_MULTIPLIER_ADD_VALUE
+		if(!length(property_costs))
+			for(var/datum/chem_property/P in target.data.properties)
+				if(!isPositiveProperty(P))
+					only_positive = FALSE
+				if(P.category & PROPERTY_TYPE_ANOMALOUS)
+					property_costs[P.name] = P.level * PROPERTY_MULTIPLIER_ANOMALOUS
+					continue
+				switch(mode)
+					if(MODE_AMPLIFY)
+						property_costs[P.name] = max(min(P.level - 1, PROPERTY_COST_MAX), 1)
+					if(MODE_SUPPRESS)
+						property_costs[P.name] = 2
+					if(MODE_RELATE)
+						if(reference_property)
+							if(reference_property.category & PROPERTY_TYPE_ANOMALOUS)
+								property_costs[P.name] = P.level * 10
+							else if(reference_property.rarity < PROPERTY_RARE)
+								property_costs[P.name] = P.level
+							else
+								property_costs[P.name] = P.level * PROPERTY_MULTIPLIER_RARE
 						else
-							property_costs[P.name] = P.level * PROPERTY_MULTIPLIER_RARE
-					else
-						property_costs[P.name] = P.level * 1
+							property_costs[P.name] = P.level * 1
 		if(only_positive)
 			for(var/P in property_costs)
 				property_costs[P] = property_costs[P] + 1
-	chemical_data.has_new_properties = FALSE
-
-//Here the cost for creating a chemical is calculated. If you're looking to rebalance create mode, this is where you do it
-/obj/structure/machinery/chem_simulator/proc/calculate_creation_cost()
-	creation_cost = 0
-	min_creation_cost = 5 //min cost of 5
-	var/slots_used = LAZYLEN(creation_template)
-	creation_cost += slots_used * 3 - 6 //3 cost for each slot after the 2nd
-	min_creation_cost += slots_used - 2
-	for(var/datum/chem_property/P in creation_template)
-		creation_cost += max(abs(P.value), 1) * P.level
-		if(P.level > 5) // a penalty is added at each level above 5 (+1 at 6, +2 at 7, +4 at 8, +5 at 9, +7 at 10)
-			creation_cost += P.level - 6 + n_ceil((P.level - 5) / 2)
-	creation_cost += ((new_od_level - 10) / 5) * 3 //3 cost for every 5 units above 10
-	for(var/rarity in creation_complexity)
-		switch(rarity)
-			if(CHEM_CLASS_BASIC)
-				creation_cost += 7
-			if(CHEM_CLASS_COMMON)
-				creation_cost += 4
-			if(CHEM_CLASS_UNCOMMON)
-				creation_cost++
-			if(CHEM_CLASS_RARE)
-				creation_cost -= 5
-	creation_cost = max(creation_cost, min_creation_cost) //checks against minimum cost
+	GLOB.chemical_data.has_new_properties = FALSE
 
 /obj/structure/machinery/chem_simulator/proc/calculate_new_od_level()
-	if(mode == MODE_CREATE || !target || !target.data)
-		new_od_level = creation_od_level
-		return
 	new_od_level = max(target.data.overdose, 1)
+	if(mode == MODE_ADD)
+		return //add mode doesnt harm od level of target
 	if(new_od_level <= 5)
 		new_od_level = max(new_od_level - 1, 1)
 	else
 		new_od_level = max(new_od_level - 5, 5)
 
 /obj/structure/machinery/chem_simulator/proc/prepare_recipe_options()
-	var/datum/chemical_reaction/generated/O = chemical_reactions_list[target.data.id]
+	var/datum/chemical_reaction/generated/O = GLOB.chemical_reactions_list[target.data.id]
 	if(!O) //If it doesn't have a recipe, go immediately to finalizing, which will then generate a new associated recipe
 		return FALSE
 	recipe_targets = list() //reset
@@ -481,11 +367,11 @@
 			if(LAZYLEN(R.required_reagents) > 2)
 				LAZYREMOVE(R.required_reagents, pick(R.required_reagents))
 			var/new_component_id = R.add_component(tier = max(min(target.data.chemclass, CHEM_CLASS_COMMON), target.data.gen_tier, 1))
-			var/datum/reagent/new_component = chemical_reagents_list[new_component_id]
+			var/datum/reagent/new_component = GLOB.chemical_reagents_list[new_component_id]
 			//Make sure we don't have an identical reaction and that the component is identified
 			if(R.check_duplicate() || R.check_reaction_uses_all_default_medical() || new_component.chemclass >= CHEM_CLASS_SPECIAL)
 				R.required_reagents = old_reaction.Copy()
-				if(i >= 5)
+				if(i >= 8) //doesnt really fix the issue but we went from 5 to 8 attempts to roll.
 					//Elevate the reaction to a higher order
 					target_elevated["[new_component.id]"] = TRUE
 					break
@@ -501,72 +387,88 @@
 		status_bar = "CRITICAL FAILURE: NO POSSIBLE CHEMICAL COMBINATION"
 		simulating = SIMULATION_STAGE_OFF
 		return FALSE
-	if(target && mode != MODE_CREATE)
+
+	if(target)
 		if(!target.completed)
 			status_bar = "INCOMPLETE DATA DETECTED IN TARGET"
 			return FALSE
 		if(!target.data)
 			status_bar = "DATA CORRUPTION DETECTED, RESCAN CHEMICAL"
 			return FALSE
+		if(target.data.lockdown_chem)
+			status_bar = "TARGET CHEMICAL STRUCTURE DESTROYED"
+			return FALSE
 		if(target.data.chemclass < CHEM_CLASS_BASIC || !istype(target.data, /datum/reagent/generated)) //Requires a custom/generated chem as a base
 			status_bar = "TARGET CAN NOT BE ALTERED"
 			return FALSE
 		//Safety check in case of irregular papers
-		var/datum/chemical_reaction/C = chemical_reactions_list[target.data.id]
+		var/datum/chemical_reaction/C = GLOB.chemical_reactions_list[target.data.id]
 		if(C)
 			for(var/component in C.required_reagents)
-				var/datum/reagent/R = chemical_reagents_list[component]
-				if(R && R.chemclass >= CHEM_CLASS_SPECIAL && !chemical_data.chemical_identified_list[R.id])
+				var/datum/reagent/R = GLOB.chemical_reagents_list[component]
+				if(R && R.chemclass >= CHEM_CLASS_SPECIAL && !GLOB.chemical_data.chemical_identified_list[R.id] && R.chemclass != CHEM_CLASS_HYDRO)
 					status_bar = "UNREGISTERED COMPONENTS DETECTED"
 					return FALSE
 			for(var/catalyst in C.required_catalysts)
-				var/datum/reagent/R = chemical_reagents_list[catalyst]
-				if(R && R.chemclass >= CHEM_CLASS_SPECIAL && !chemical_data.chemical_identified_list[R.id])
+				var/datum/reagent/R = GLOB.chemical_reagents_list[catalyst]
+				if(R && R.chemclass >= CHEM_CLASS_SPECIAL && !GLOB.chemical_data.chemical_identified_list[R.id]  && R.chemclass != CHEM_CLASS_HYDRO)
 					status_bar = "UNREGISTERED CATALYSTS DETECTED"
 					return FALSE
-		if(target_property)
-			if(property_costs[target_property.name] > chemical_data.rsc_credits)
+		if(target_property && mode != MODE_ADD)
+			if(property_costs[target_property.name] > GLOB.chemical_data.rsc_credits)
 				status_bar = "INSUFFICIENT FUNDS"
 				return FALSE
 			if(target_property.category & PROPERTY_TYPE_UNADJUSTABLE)
 				status_bar = "TARGET PROPERTY CAN NOT BE SIMULATED"
 				return FALSE
 			if(mode == MODE_AMPLIFY)
-				if(target_property.level >= chemical_data.clearance_level*TECHTREE_LEVEL_MULTIPLIER + 2 && chemical_data.clearance_level < 5)
+				if(target_property.level >= GLOB.chemical_data.clearance_level*TECHTREE_LEVEL_MULTIPLIER + 2 && GLOB.chemical_data.clearance_level < 5)
 					status_bar = "CLEARANCE INSUFFICIENT FOR AMPLIFICATION"
 					return FALSE
+				if(target_property.level >= target_property.max_level)
+					status_bar = "PROPERTY CANNOT BE AMPLIFIED FURTHER"
+					return FALSE
+		else if(mode != MODE_ADD)
+			status_bar = "TARGET NOT SELECTED"
+			return FALSE
 		if(target && length(target.data.properties) < 2)
 			status_bar = "TARGET COMPLEXITY IMPROPER FOR RELATION"
 			return FALSE
-		if(reference && target)
-			if(!reference.completed)
-				status_bar = "INCOMPLETE DATA DETECTED IN REFERENCE"
-				return FALSE
-			if(reference_property)
-				if(target.data.get_property(reference_property.name))
-					status_bar = "REFERENCE PROPERTY ALREADY IN TARGET"
+		if((mode == MODE_RELATE || mode == MODE_ADD) && isnull(reference))
+			status_bar = "NO REFERENCE DATA DETECTED"
+			return FALSE
+		if(mode == MODE_RELATE || mode == MODE_ADD)
+			if(reference && target)
+				if(!reference.completed)
+					status_bar = "INCOMPLETE DATA DETECTED IN REFERENCE"
 					return FALSE
-				if(target_property)
-					if(target_property.level != reference_property.level)
-						status_bar = "REFERENCE AND TARGET PROPERTY MUST BE OF EQUAL LEVELS"
+				if(reference.data.lockdown_chem)
+					status_bar = "REFERENCE CHEMICAL STRUCTURE DESTROYED"
+					return FALSE
+				if(reference_property)
+					if(target.data.get_property(reference_property.name))
+						status_bar = "REFERENCE PROPERTY ALREADY IN TARGET"
 						return FALSE
+					if(target_property || mode != MODE_ADD)
+						if(target_property.level != reference_property.level)
+							status_bar = "REFERENCE AND TARGET PROPERTY MUST BE OF EQUAL LEVELS"
+							return FALSE
 					if(reference_property.category & PROPERTY_TYPE_UNADJUSTABLE)
 						status_bar = "REFERENCE PROPERTY CAN NOT BE SIMULATED"
 						return FALSE
-	if(mode == MODE_CREATE)
-		if(!LAZYLEN(creation_template))
-			status_bar = "TEMPLATE IS EMPTY"
-			return FALSE
-		if(LAZYLEN(creation_name) < 2)
-			status_bar = "NAME NOT SET"
-			return FALSE
-		if(creation_cost > chemical_data.rsc_credits)
-			status_bar = "INSUFFICIENT FUNDS"
-			return FALSE
-	else if(!target)
+				else
+					status_bar = "REFERENCE PROPERTY NOT SELECTED"
+					return FALSE
+				if(mode == MODE_ADD)
+					if(property_costs[reference_property.name] > GLOB.chemical_data.rsc_credits)
+						status_bar = "INSUFFICIENT FUNDS"
+						return FALSE
+
+	if(!target)
 		status_bar = "NO TARGET INSERTED"
 		return FALSE
-	status_bar = "READY"
+	if(simulating == SIMULATION_STAGE_OFF)
+		status_bar = "READY"
 	return TRUE
 
 /obj/structure/machinery/chem_simulator/proc/print(id, is_new)
@@ -575,36 +477,24 @@
 	flick("[icon_state]_printing",src)
 	sleep(10)
 	var/obj/item/paper/research_report/report = new /obj/item/paper/research_report/(loc)
-	var/datum/reagent/D = chemical_reagents_list[id]
+	var/datum/reagent/D = GLOB.chemical_reagents_list[id]
 	var/datum/asset/asset = get_asset_datum(/datum/asset/simple/paper)
-	report.name = "Simulation result for [D.name]"
-	report.info += "<center><img src = [asset.get_url_mappings()["wylogo.png"]]><HR><I><B>Official Company Document</B><BR>Simulated Synthesis Report</I><HR><H2>Result for [D.name]</H2></center>"
-	report.generate(D)
-	report.info += "<BR><HR><font size = \"1\"><I>This report was automatically printed by the Synthesis Simulator.<BR>The [MAIN_SHIP_NAME], [time2text(world.timeofday, "MM/DD")]/[game_year], [worldtime2text()]</I></font><BR>\n<span class=\"paper_field\"></span>"
+	report.name = "Simulation result for [D.id]"
+	report.info += "<center><img src = [asset.get_url_mappings()["logo_wy.png"]]><HR><I><B>Official Company Document</B><BR>Simulated Synthesis Report</I><HR><H2>Result for [D.id]</H2></center>"
+	report.generate(GLOB.chemical_reagents_list[id])
+	report.info += "<BR><HR><font size = \"1\"><I>This report was automatically printed by the Synthesis Simulator.<BR>The [MAIN_SHIP_NAME], [time2text(world.timeofday, "MM/DD")]/[GLOB.game_year], [worldtime2text()]</I></font><BR>\n<span class=\"paper_field\"></span>"
 	playsound(loc, 'sound/machines/twobeep.ogg', 15, 1)
 	if(is_new)
-		chemical_data.save_document(report, "Synthesis Simulations", report.name)
+		GLOB.chemical_data.save_document(report, "Synthesis Simulations", report.name)
 
 /obj/structure/machinery/chem_simulator/proc/encode_reagent(datum/reagent/C)
-	var/datum/reagent/O = chemical_reagents_list[C.original_id] //So make the new name based on the Original
-	var/suffix = " "
+	var/datum/reagent/O = GLOB.chemical_reagents_list[C.original_id] //So make the new name based on the Original
+	var/suffix
 	for(var/datum/chem_property/P in C.properties)
-		suffix += P.code+"[P.level]"
-	return O.name + suffix
-
-/obj/structure/machinery/chem_simulator/proc/complexity_to_string_list()
-	var/list/L = list()
-	for(var/rarity in creation_complexity)
-		switch(rarity)
-			if(CHEM_CLASS_BASIC)
-				LAZYADD(L, "BASIC")
-			if(CHEM_CLASS_COMMON)
-				LAZYADD(L, "COMMON")
-			if(CHEM_CLASS_UNCOMMON)
-				LAZYADD(L, "UNCOMMON")
-			if(CHEM_CLASS_RARE)
-				LAZYADD(L, "RARE")
-	return L
+		suffix += " [P.code][P.level]"
+	C.id = O.name + " " + copytext(md5(suffix),1,3) + suffix //Show random suffix AND real properties on research paper
+	C.name = O.name + " " + copytext(md5(suffix),1,3) //Show ONLY random suffix on health analyzers
+	return
 
 /obj/structure/machinery/chem_simulator/proc/finalize_simulation(datum/reagent/generated/C)
 	simulating = SIMULATION_STAGE_OFF
@@ -633,20 +523,24 @@
 	C.remove_property(target_property.name)
 	C.insert_property(reference_property.name, reference_property.level)
 
-/obj/structure/machinery/chem_simulator/proc/create(datum/reagent/generated/C)
-	C.chemclass = CHEM_CLASS_RARE
-	C.name = creation_name
-	if(LAZYLEN(C.name) < 2) //Don't know how this would even happen, but here's a safety
-		C.generate_name()
-	C.id = C.name
-	C.properties = list()
-	C.custom_metabolism = REAGENTS_METABOLISM
-	C.color = text("#[][][]",num2hex(rand(0,255)),num2hex(rand(0,255)),num2hex(rand(0,255)))
-	C.burncolor = C.color
-	for(var/datum/chem_property/P in creation_template)
-		C.insert_property(P.name, P.level)
-	creation_name = "" //reset it
-	end_simulation(C)
+
+/obj/structure/machinery/chem_simulator/proc/add(datum/reagent/generated/C)
+	if(!target || !reference || !reference_property)
+		return
+	C.make_alike(target.data)
+	C.insert_property(reference_property.name, reference_property.level)
+	retroactively_lockdown(reference.data)
+
+
+/obj/structure/machinery/chem_simulator/proc/retroactively_lockdown(datum/reagent/chemical)
+	if(!chemical.original_id)
+		chemical.lockdown_chem = TRUE
+		return
+	var/datum/reagent/parent_chemical = GLOB.chemical_reagents_list[chemical.original_id]
+	parent_chemical.lockdown_chem = TRUE
+	for(var/chemical_id in parent_chemical.modified_chemicals_list)
+		var/datum/reagent/chemical_lock = GLOB.chemical_reagents_list[chemical_id]
+		chemical_lock.lockdown_chem = TRUE
 
 /obj/structure/machinery/chem_simulator/proc/end_simulation(datum/reagent/C)
 	//Set tier
@@ -660,13 +554,9 @@
 
 	R.gen_tier = C.gen_tier
 
-	if(mode != MODE_CREATE)
-		assoc_R = chemical_reactions_list[target.data.id]
+	assoc_R = GLOB.chemical_reactions_list[target.data.id]
 	if(!assoc_R) //no associated recipe found
-		if(mode == MODE_CREATE)
-			assoc_R = C.generate_assoc_recipe(creation_complexity)
-		else
-			assoc_R = C.generate_assoc_recipe()
+		assoc_R = C.generate_assoc_recipe()
 	if(!assoc_R) //no possible associated recipe could be generated
 		icon_state = "modifier"
 		playsound(loc, 'sound/machines/buzz-two.ogg', 15, 1)
@@ -677,10 +567,9 @@
 
 	R.make_alike(assoc_R)
 
-	if(mode != MODE_CREATE)
-		if(R.required_reagents.len > 2 && !recipe_targets[recipe_target]) //we only replace if the recipe isn't small and the target is not set TRUE to being elevated
-			LAZYREMOVE(R.required_reagents, pick(R.required_reagents))
-		R.add_component(recipe_target)
+	if(length(R.required_reagents) > 2 && !recipe_targets[recipe_target]) //we only replace if the recipe isn't small and the target is not set TRUE to being elevated
+		LAZYREMOVE(R.required_reagents, pick(R.required_reagents))
+	R.add_component(recipe_target, text2num(pick_weight(list("1" = 30, "2" = 15, "3" = 15, "4" = 5))))
 
 	//Handle new overdose
 	C.overdose = new_od_level
@@ -689,29 +578,65 @@
 	C.overdose_critical = max(min(new_od_level * 2, new_od_level + 30), 10)
 
 	//Pay
-	if(mode == MODE_CREATE)
-		chemical_data.update_credits(creation_cost * -1)
+	if(mode != MODE_ADD)
+		GLOB.chemical_data.update_credits(property_costs[target_property.name] * -1)
 	else
-		chemical_data.update_credits(property_costs[target_property.name] * -1)
-		//Refund 1 credit if a rare or rarer target was added
-		var/datum/reagent/component = chemical_reagents_list[recipe_target]
-		if(component && component.chemclass >= CHEM_CLASS_RARE)
-			chemical_data.update_credits(1)
+		GLOB.chemical_data.update_credits(property_costs[reference_property.name] * -1)
+	//Refund 1 credit if a rare or rarer target was added
+	var/datum/reagent/component = GLOB.chemical_reagents_list[recipe_target]
+	if(component && component.chemclass >= CHEM_CLASS_RARE)
+		GLOB.chemical_data.update_credits(1)
 
 
 	//Save the reagent
 	C.generate_description()
 	C.chemclass = CHEM_CLASS_RARE //So that we can always scan this in the future, don't generate defcon, and don't get a loop of making credits
-	chemical_reagents_list[C.id] = C
+	GLOB.chemical_reagents_list[C.id] = C
 	LAZYADD(simulations, C.id) //Remember we've simulated this
+
+	//link the chemical to parent chemical
+	if(C.original_id)
+		var/datum/reagent/chem_to_add
+		chem_to_add = GLOB.chemical_reagents_list[C.original_id]
+		chem_to_add.modified_chemicals_list += C.id
 
 	//Save the reaction
 	R.id = C.id
 	R.result = C.id
-	chemical_reactions_list[R.id] = R
+	GLOB.chemical_reactions_list[R.id] = R
 	R.add_to_filtered_list()
 	status_bar = "SIMULATION COMPLETE"
 	print(C.id, TRUE)
+
+/datum/chemical_simulator_modes
+	var/name
+	var/desc
+	var/mode_id
+	var/icon_type
+
+/datum/chemical_simulator_modes/supress
+	name = "SUPRESS"
+	desc = "Supress one level in the choosen property. This operation lowers the OD level."
+	mode_id = MODE_SUPPRESS
+	icon_type = "square-minus"
+
+/datum/chemical_simulator_modes/amplify
+	name = "AMPLIFY"
+	desc = "Amplify one level in the choosen property. This operation lowers the OD level."
+	mode_id = MODE_AMPLIFY
+	icon_type = "square-plus"
+
+/datum/chemical_simulator_modes/add //death to create mode! Glory to the new add mode!
+	name = "ADD"
+	desc = "Use the property in the reference chemical to add a property to the target chemical, with no downsides to the target chemical, however it damages the chemical structure of reference chemical, Making any other modification impossible."
+	mode_id = MODE_ADD
+	icon_type = "arrow-right"
+
+/datum/chemical_simulator_modes/relate
+	name = "RELATE"
+	desc = "Use the reference chemical to replace one choosen property in the target chemical. The target and reference target property level must be equal, This operation lowers the OD level."
+	mode_id = MODE_RELATE
+	icon_type = "repeat"
 
 #undef SIMULATION_FAILURE
 #undef SIMULATION_STAGE_OFF
@@ -719,10 +644,9 @@
 #undef SIMULATION_STAGE_WAIT
 #undef SIMULATION_STAGE_3
 #undef SIMULATION_STAGE_4
-#undef SIMULATION_STAGE_5
 #undef SIMULATION_STAGE_BEGIN
 
 #undef MODE_AMPLIFY
 #undef MODE_SUPPRESS
 #undef MODE_RELATE
-#undef MODE_CREATE
+#undef MODE_ADD

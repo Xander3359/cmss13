@@ -121,12 +121,12 @@
 
 	switch(.["class"])
 		if(VV_TEXT)
-			.["value"] = tgui_input_text(usr, "Enter new text:", "Text", current_value, encode = FALSE)
+			.["value"] = tgui_input_text(usr, "Enter new text:", "Text", current_value, encode = FALSE, trim = FALSE)
 			if(.["value"] == null)
 				.["class"] = null
 				return
 		if(VV_MESSAGE)
-			.["value"] = tgui_input_text(usr, "Enter new text:", "Text", current_value, encode = FALSE)
+			.["value"] = tgui_input_text(usr, "Enter new text:", "Text", current_value, encode = FALSE, trim = FALSE)
 			if(.["value"] == null)
 				.["class"] = null
 				return
@@ -236,7 +236,7 @@
 				return
 
 		if(VV_ICON)
-			.["value"] = input("Pick icon:", "Icon") as null|icon
+			.["value"] = pick_and_customize_icon(pick_only=TRUE)
 			if(.["value"] == null)
 				.["class"] = null
 				return
@@ -328,7 +328,7 @@
 
 		if(VV_COLOR_MATRIX)
 			.["value"] = open_color_matrix_editor()
-			if(.["value"] == color_matrix_identity()) //identity is equivalent to null
+			if(.["value"] == COLOR_MATRIX_IDENTITY) //identity is equivalent to null
 				.["class"] = null
 
 		if(VV_INFINITY)
@@ -390,7 +390,7 @@
 	var/list/matches = new
 	var/end_len = -1
 	var/list/endcheck = splittext(filter, "!")
-	if(endcheck.len > 1)
+	if(length(endcheck) > 1)
 		filter = endcheck[1]
 		end_len = length_char(filter)
 

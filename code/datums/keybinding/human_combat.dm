@@ -89,22 +89,6 @@
 	held_item.toggle_underbarrel_attachment_verb()
 	return TRUE
 
-/datum/keybinding/human/combat/unique_action
-	hotkey_keys = list("Space")
-	classic_keys = list("Unbound")
-	name = "unique_action"
-	full_name = "Unique Action"
-	keybind_signal = COMSIG_KB_HUMAN_WEAPON_UNIQUEACTION
-
-/datum/keybinding/human/combat/unique_action/down(client/user)
-	. = ..()
-	if(.)
-		return
-	var/mob/living/carbon/human/human = user.mob
-	var/obj/item/weapon/gun/held_item = human.get_held_item()
-	held_item.use_unique_action()
-	return TRUE
-
 /datum/keybinding/human/combat/unload_gun
 	hotkey_keys = list("Shift+Z")
 	classic_keys = list("Unbound")
@@ -169,6 +153,13 @@
 	held_item.activate_rail_attachment_verb()
 	return TRUE
 
+/datum/keybinding/human/combat/toggle_frontline_mode
+	hotkey_keys = list("Unbound")
+	classic_keys = list("Unbound")
+	name = "toggle_frontline_mode"
+	full_name = "Toggle Smartgun Frontline Mode"
+	keybind_signal = COMSIG_KB_HUMAN_WEAPON_TOGGLE_FRONTLINE_MODE
+
 /datum/keybinding/human/combat/toggle_iff
 	hotkey_keys = list("Unbound")
 	classic_keys = list("Unbound")
@@ -189,4 +180,21 @@
 	else if(istype(held_item, /obj/item/weapon/gun/rifle/m46c))
 		var/obj/item/weapon/gun/rifle/m46c/COgun = held_item
 		COgun.toggle_iff(human)
+		return TRUE
+
+/datum/keybinding/human/combat/toggle_shotgun_tube
+	hotkey_keys = list("Unbound")
+	classic_keys = list("Unbound")
+	name = "toggle_shotgun_tube"
+	full_name = "Toggle Shotgun Tube"
+	keybind_signal = COMSIG_KB_HUMAN_WEAPON_SHOTGUN_TUBE
+
+/datum/keybinding/human/combat/toggle_shotgun_tube/down(client/user)
+	. = ..()
+	if(.)
+		return
+	var/mob/living/carbon/human/human = user.mob
+	var/obj/item/weapon/gun/shotgun/pump/dual_tube/held_item = human.get_held_item()
+	if(istype(held_item))
+		held_item.toggle_tube()
 		return TRUE

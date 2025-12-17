@@ -33,7 +33,6 @@
 	var/pain_reduction_required = PAIN_REDUCTION_FULL
 	///How much training is needed to do this surgery?
 	var/required_surgery_skill = SKILL_SURGERY_TRAINED
-
 	var/step_in_progress = FALSE
 	///The step the surgery is currently on. When status > number of steps, the surgery ends.
 	var/status = 1
@@ -73,6 +72,7 @@
 		if(!user.action_busy) //Otherwise, assume it's the same person.
 			to_chat(user, SPAN_WARNING("Someone is already performing surgery on [target]'s [affected_limb.display_name]!"))
 			return FALSE
+
 		return TRUE //So that you don't poke them with a tool you're already using.
 
 	if(user.action_busy)
@@ -90,8 +90,14 @@
 			to_chat(user, SPAN_WARNING("You can't operate on [target], \he is being carried by [target.pulledby]!"))
 		return FALSE
 
-	if(lying_required && !target.lying)
+	if(lying_required && target.body_position != LYING_DOWN)
 		to_chat(user, SPAN_WARNING("[user == target ? "You need" : "[target] needs"] to be lying down for this operation!"))
+		return FALSE
+
+	for(var/mob/living/potential_blocker in get_turf(target))
+		if(potential_blocker == user || potential_blocker == target)
+			continue
+		to_chat(user, SPAN_WARNING("You can't operate when you don't have enough space! Remove everybody else."))
 		return FALSE
 
 	if(user == target)
@@ -102,7 +108,6 @@
 			to_chat(user, SPAN_WARNING("You can't perform surgery on the same \
 				[user.zone_selected == "r_hand"||user.zone_selected == "l_hand" ? "hand":"arm"] you're using!"))
 			return FALSE
-
 	var/datum/surgery_step/current_step = GLOB.surgery_step_list[steps[status]]
 	if(current_step)
 		if(current_step.attempt_step(user, target, user.zone_selected, tool, src, repeating)) //First, try this step.

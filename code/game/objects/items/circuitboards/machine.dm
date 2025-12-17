@@ -67,7 +67,7 @@ to destroy them and players will be able to make replacements.
 
 /obj/item/circuitboard/machine/pacman
 	name = "Circuit Board (PACMAN-type Generator)"
-	build_path = /obj/structure/machinery/power/port_gen/pacman
+	build_path = /obj/structure/machinery/power/power_generator/port_gen/pacman
 
 	frame_desc = "Requires 1 Matter Bin, 1 Micro-Laser, 2 Pieces of Cable, and 1 Capacitor."
 	req_components = list(
@@ -79,12 +79,12 @@ to destroy them and players will be able to make replacements.
 
 /obj/item/circuitboard/machine/pacman/super
 	name = "Circuit Board (SUPERPACMAN-type Generator)"
-	build_path = /obj/structure/machinery/power/port_gen/pacman/super
+	build_path = /obj/structure/machinery/power/power_generator/port_gen/pacman/super
 
 
 /obj/item/circuitboard/machine/pacman/mrs
 	name = "Circuit Board (MRSPACMAN-type Generator)"
-	build_path = /obj/structure/machinery/power/port_gen/pacman/mrs
+	build_path = /obj/structure/machinery/power/power_generator/port_gen/pacman/mrs
 
 
 /obj/item/circuitboard/machine/rdserver
@@ -141,7 +141,7 @@ to destroy them and players will be able to make replacements.
 	if(HAS_TRAIT(I, TRAIT_TOOL_SCREWDRIVER))
 		machine_dir = turn(machine_dir, 90)
 		init_dirs = machine_dir
-		user.visible_message(SPAN_NOTICE("\The [user] adjusts the jumper on the [src]'s port configuration pins."), SPAN_NOTICE("You adjust the jumper on the port configuration pins. Now set to [dir2text(machine_dir)]."))
+		user.visible_message(SPAN_NOTICE("[user] adjusts the jumper on [src]'s port configuration pins."), SPAN_NOTICE("You adjust the jumper on the port configuration pins. Now set to [dir2text(machine_dir)]."))
 	return
 
 /obj/item/circuitboard/machine/unary_atmos/get_examine_text(mob/user)
@@ -286,7 +286,7 @@ to destroy them and players will be able to make replacements.
 
 /obj/item/circuitboard/machine/ghettosmes
 	name = "Circuit board (makeshift PSU)"
-	desc = "An APC circuit repurposed into some power storage device controller"
+	desc = "An APC circuit repurposed into some power storage device controller."
 	build_path = /obj/structure/machinery/power/smes/batteryrack/makeshift
 	frame_desc = "Requires 3 power cells."
 	req_components = list(/obj/item/cell = 3)
@@ -300,5 +300,3 @@ to destroy them and players will be able to make replacements.
 	// Board itself is high tech. Coils have to be ordered from cargo or salvaged from existing SMESs.
 	frame_desc = "Requires 1 superconducting magnetic coil and 30 wires."
 	req_components = list(/obj/item/stock_parts/smes_coil = 1, /obj/item/stack/cable_coil = 30)
-
-

@@ -60,7 +60,7 @@ INITIALIZE_IMMEDIATE(/atom/movable/screen/color_matrix_proxy_view)
 	else if(istext(_target?.color))
 		current_color = color_hex2color_matrix(_target.color)
 	else
-		current_color = color_matrix_identity()
+		current_color = COLOR_MATRIX_IDENTITY
 	proxy_view = new
 	if(_target)
 		target = WEAKREF(_target)
@@ -69,6 +69,7 @@ INITIALIZE_IMMEDIATE(/atom/movable/screen/color_matrix_proxy_view)
 		proxy_view.appearance = image('icons/misc/colortest.dmi', "colors")
 
 	proxy_view.color = current_color
+	proxy_view.appearance_flags |= TILE_BOUND
 	proxy_view.register_to_client(owner)
 
 /datum/color_matrix_editor/Destroy(force, ...)

@@ -33,7 +33,7 @@
 	siemens_coefficient = 0.9
 	w_class = SIZE_MEDIUM
 	eye_protection = EYE_PROTECTION_WELDING
-	vision_impair = VISION_IMPAIR_MAX
+	vision_impair = VISION_IMPAIR_ULTRA
 
 /obj/item/clothing/head/welding/attack_self(mob/user)
 	..()
@@ -45,33 +45,45 @@
 	set name = "Adjust welding mask"
 	set src in usr
 
-	if(usr.canmove && !usr.stat && !usr.is_mob_restrained())
-		if(up)
-			vision_impair = VISION_IMPAIR_MAX
-			flags_inventory |= COVEREYES|COVERMOUTH|BLOCKSHARPOBJ
-			flags_inv_hide |= HIDEEARS|HIDEEYES|HIDEFACE
-			icon_state = initial(icon_state)
-			eye_protection = initial(eye_protection)
-			to_chat(usr, "You flip the [src] down to protect your eyes.")
-		else
-			vision_impair = VISION_IMPAIR_NONE
-			flags_inventory &= ~(COVEREYES|COVERMOUTH|BLOCKSHARPOBJ)
-			flags_inv_hide &= ~(HIDEEARS|HIDEEYES|HIDEFACE)
-			icon_state = "[initial(icon_state)]up"
-			eye_protection = EYE_PROTECTION_NONE
-			to_chat(usr, "You push the [src] up out of your face.")
-		up = !up
+	if(usr.is_mob_incapacitated())
+		return
 
-		if(ishuman(loc))
-			var/mob/living/carbon/human/H = loc
-			if(H.head == src)
-				H.update_tint()
+	if(up)
+		vision_impair = VISION_IMPAIR_ULTRA
+		flags_inventory |= COVEREYES|COVERMOUTH|BLOCKSHARPOBJ
+		flags_inv_hide |= HIDEEARS|HIDEEYES|HIDEFACE
+		icon_state = initial(icon_state)
+		eye_protection = initial(eye_protection)
+		to_chat(usr, SPAN_NOTICE("You flip [src] down to protect your eyes."))
+	else
+		vision_impair = VISION_IMPAIR_NONE
+		flags_inventory &= ~(COVEREYES|COVERMOUTH|BLOCKSHARPOBJ)
+		flags_inv_hide &= ~(HIDEEARS|HIDEEYES|HIDEFACE)
+		icon_state = "[initial(icon_state)]up"
+		eye_protection = EYE_PROTECTION_NONE
+		to_chat(usr, SPAN_NOTICE("You push [src] up out of your face."))
+	up = !up
 
-		update_clothing_icon() //so our mob-overlays update
+	if(ishuman(loc))
+		var/mob/living/carbon/human/H = loc
+		if(H.head == src)
+			H.update_tint()
 
-		for(var/X in actions)
-			var/datum/action/A = X
-			A.update_button_icon()
+	update_clothing_icon() //so our mob-overlays update
+
+	for(var/X in actions)
+		var/datum/action/A = X
+		A.update_button_icon()
+
+/obj/item/clothing/head/welding/painted
+	name = "custom welding helmet"
+	desc = "A head-mounted face cover, painted red with bold white stripes, offering solid protection and a touch of style."
+	icon_state = "weldingpainted"
+	item_state = "weldingpainted"
+	icon = 'icons/obj/items/clothing/hats/hats.dmi'
+	item_icons = list(
+		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats.dmi'
+	)
 
 /*
  * Cakehat
@@ -84,7 +96,7 @@
 	var/onfire = 0
 	var/status = 0
 	var/fire_resist = T0C+1300 //this is the max temp it can stand before you start to cook. although it might not burn away, you take damage
-	var/processing = 0 //I dont think this is used anywhere.
+	var/processing = 0 //I don't think this is used anywhere.
 	flags_armor_protection = BODY_FLAG_EYES
 
 /obj/item/clothing/head/cakehat/process()

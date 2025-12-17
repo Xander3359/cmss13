@@ -1,4 +1,4 @@
-//I still dont think this should be a closet but whatever
+//I still don't think this should be a closet but whatever
 /obj/structure/closet/fireaxecabinet
 	name = "Fire Axe Cabinet"
 	desc = "There is small label that reads \"For Emergency use only\" along with details for safe use of the axe. As if."
@@ -21,7 +21,7 @@
 	if(fireaxe)
 		hasaxe = 1
 
-	if (isrobot(usr) || src.locked)
+	if (src.locked)
 		if(HAS_TRAIT(O, TRAIT_TOOL_MULTITOOL))
 			to_chat(user, SPAN_DANGER("Resetting circuitry..."))
 			playsound(user, 'sound/machines/lockreset.ogg', 25, 1)
@@ -50,7 +50,7 @@
 					src.locked = 0
 					src.localopened = 1
 			update_icon()
-		return
+		return ATTACKBY_HINT_UPDATE_NEXT_MOVE
 	if (istype(O, /obj/item/weapon/twohanded/fireaxe) && src.localopened)
 		if(!fireaxe)
 			if(O.flags_item & WIELDED)
@@ -104,7 +104,8 @@
 	var/hasaxe = 0
 	if(fireaxe)
 		hasaxe = 1
-	if(!ishuman(user)) return
+	if(!ishuman(user))
+		return
 	if(src.locked)
 		to_chat(user, SPAN_DANGER("The cabinet won't budge!"))
 		return
@@ -140,7 +141,7 @@
 	set name = "Open/Close"
 	set category = "Object"
 
-	if (isrobot(usr) || src.locked || src.smashed)
+	if (src.locked || src.smashed)
 		if(src.locked)
 			to_chat(usr, SPAN_DANGER("The cabinet won't budge!"))
 		else if(src.smashed)
@@ -153,9 +154,6 @@
 /obj/structure/closet/fireaxecabinet/verb/remove_fire_axe()
 	set name = "Remove Fire Axe"
 	set category = "Object"
-
-	if (isrobot(usr))
-		return
 
 	if (istype(usr, /mob/living/carbon/xenomorph))
 		return
@@ -189,8 +187,8 @@
 		hasaxe = 1
 	icon_state = text("fireaxe[][][][]",hasaxe,src.localopened,src.hitstaken,src.smashed)
 
-/obj/structure/closet/fireaxecabinet/open()
+/obj/structure/closet/fireaxecabinet/open(mob/user, force)
 	return
 
-/obj/structure/closet/fireaxecabinet/close()
+/obj/structure/closet/fireaxecabinet/close(mob/user)
 	return

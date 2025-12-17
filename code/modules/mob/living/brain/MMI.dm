@@ -16,7 +16,6 @@
 
 	var/locked = 0
 	var/mob/living/brain/brainmob = null//The current occupant.
-	var/mob/living/silicon/robot = null//Appears unused.
 	var/obj/mecha = null//This does not appear to be used outside of reference in mecha.dm.
 
 /obj/item/device/mmi/attackby(obj/item/O, mob/user)
@@ -134,6 +133,7 @@
 	to_chat(brainmob, SPAN_NOTICE(" Radio is [radio.listening==1 ? "now" : "no longer"] receiving broadcast. "))
 
 /obj/item/device/mmi/emp_act(severity)
+	. = ..()
 	if(!brainmob)
 		return
 	else
@@ -144,4 +144,3 @@
 				brainmob.emp_damage += rand(10,20)
 			if(3)
 				brainmob.emp_damage += rand(0,10)
-	..()

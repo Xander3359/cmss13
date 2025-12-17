@@ -3,7 +3,7 @@
 	var/desc = "You were born somewhere, someplace. The area is known for doing things, you think."
 
 /datum/origin/proc/generate_human_name(gender = MALE)
-	return pick(gender == MALE ? first_names_male : first_names_female) + " " + pick(last_names)
+	return random_name(gender)
 
 /// Return null if the name is correct, otherwise return a string containing the error message
 /datum/origin/proc/validate_name(name_to_check)

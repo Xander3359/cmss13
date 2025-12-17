@@ -30,6 +30,7 @@
 	network = list(CAMERA_NET_LASER_TARGETS)
 	unslashable = TRUE
 	unacidable = TRUE
+	emp_proof = TRUE
 
 /obj/structure/machinery/camera/laser_cam/Initialize(mapload, laser_name)
 	. = ..()
@@ -37,8 +38,6 @@
 		var/area/A = get_area(src)
 		c_tag = "[laser_name] ([A.name])"
 
-/obj/structure/machinery/camera/laser_cam/emp_act(severity)
-	return //immune to EMPs, just in case
 
 /obj/structure/machinery/camera/laser_cam/ex_act()
 	return
@@ -60,6 +59,7 @@
 	icon = 'icons/obj/vehicles/interiors/general.dmi'
 	icon_state = "vehicle_camera"
 	network = list(CAMERA_NET_VEHICLE)
+	owner_factions = FACTION_LIST_HUMANOID
 
 /obj/structure/machinery/camera/vehicle/toggle_cam_status(on = FALSE)
 	if(on)
@@ -68,24 +68,17 @@
 		status = FALSE
 	kick_viewers()
 
+/obj/structure/machinery/camera/vehicle/update_icon()
+	. = ..()
+	if(stat & EMPED)
+		icon_state = "vehicle_cameraemp"
+	else
+		icon_state = "vehicle_camera"
+
 // AUTONAME
 
 /obj/structure/machinery/camera/autoname
-	var/number = 0 //camera number in area
-
-//This camera type automatically sets it's name to whatever the area that it's in is called.
-/obj/structure/machinery/camera/autoname/Initialize(mapload, ...)
-	. = ..()
-	number = 1
-	var/area/A = get_area(src)
-	if(A)
-		for(var/obj/structure/machinery/camera/autoname/C in machines)
-			if(C == src) continue
-			var/area/CA = get_area(C)
-			if(CA.type == A.type)
-				if(C.number)
-					number = max(number, C.number+1)
-		c_tag = "[A.name] #[number]"
+	autoname = TRUE
 
 //cameras installed inside the dropships, accessible via both cockpit monitor and Almayer camera computers
 /obj/structure/machinery/camera/autoname/almayer/dropship_one
@@ -94,9 +87,13 @@
 /obj/structure/machinery/camera/autoname/almayer/dropship_two
 	network = list(CAMERA_NET_ALMAYER, CAMERA_NET_NORMANDY)
 
+/obj/structure/machinery/camera/autoname/almayer/dropship_three
+	network = list(CAMERA_NET_ALMAYER, CAMERA_NET_RESEARCH)
+
 /obj/structure/machinery/camera/autoname/almayer
 	name = "military-grade camera"
 	network = list(CAMERA_NET_ALMAYER)
+	owner_factions = FACTION_LIST_MARINE_WY
 
 /obj/structure/machinery/camera/autoname/almayer/containment
 	name = "containment camera"
@@ -107,12 +104,23 @@
 /obj/structure/machinery/camera/autoname/almayer/containment/attack_alien(mob/living/carbon/xenomorph/M)
 	return
 
-/obj/structure/machinery/camera/autoname/almayer/containment/hidden
-	network = list(CAMERA_NET_CONTAINMENT_HIDDEN)
+/obj/structure/machinery/camera/autoname/almayer/containment/handle_tail_stab(mob/living/carbon/xenomorph/xeno)
+	return TAILSTAB_COOLDOWN_NONE
 
 /obj/structure/machinery/camera/autoname/almayer/containment/ares
 	name = "ares core camera"
-	network = list(CAMERA_NET_ALMAYER, CAMERA_NET_ARES)
+	network = list(CAMERA_NET_ARES)
+
+/obj/structure/machinery/camera/autoname/almayer/brig
+	name = "brig camera"
+	network = list(CAMERA_NET_BRIG)
+
+/obj/structure/machinery/camera/autoname/yautja
+	network = list(CAMERA_NET_YAUTJA)
+
+/obj/structure/machinery/camera/autoname/yautja/Initialize()
+	. = ..()
+	upgradeXRay(src)
 
 //used by the landing camera dropship equipment. Do not place them right under where the dropship lands.
 //Should place them near each corner of your LZs.
@@ -125,9 +133,8 @@
 	invisibility = 101 //fuck you init()
 
 	colony_camera_mapload = FALSE
-
-/obj/structure/machinery/camera/autoname/lz_camera/emp_act(severity)
-	return //immune to EMPs, just in case
+	emp_proof = TRUE
+	owner_factions = FACTION_LIST_HUMANOID
 
 /obj/structure/machinery/camera/autoname/lz_camera/ex_act()
 	return
@@ -137,7 +144,7 @@
 
 /obj/structure/machinery/camera/proc/isEmpProof()
 	var/O = locate(/obj/item/stack/sheet/mineral/osmium) in assembly.upgrades
-	return O
+	return O || emp_proof
 
 /obj/structure/machinery/camera/proc/isXRay()
 	var/obj/item/stock_parts/scanning_module/O = locate(/obj/item/stock_parts/scanning_module) in assembly.upgrades
@@ -177,5 +184,31 @@
 	network = list(CAMERA_NET_SIMULATION)
 	invuln = TRUE
 	view_range = 14
-	use_power = FALSE
+	use_power = USE_POWER_NONE
 	invisibility = INVISIBILITY_MAXIMUM
+
+/obj/structure/machinery/camera/wey_yu
+	name = "weyland-yutani camera"
+	network = list(CAMERA_NET_WY)
+	owner_factions = FACTION_LIST_WY
+
+/obj/structure/machinery/camera/wey_yu/autoname
+	autoname = TRUE
+
+/obj/structure/machinery/camera/wey_yu/unbreakable
+	name = "reinforced weyland-yutani camera"
+
+/obj/structure/machinery/camera/wey_yu/unbreakable/attack_alien(mob/living/carbon/xenomorph/M)
+	return
+
+/obj/structure/machinery/camera/wey_yu/unbreakable/handle_tail_stab(mob/living/carbon/xenomorph/xeno)
+	return TAILSTAB_COOLDOWN_NONE
+
+/obj/structure/machinery/camera/wey_yu/unbreakable/liaison_cell
+	network = list(CAMERA_NET_CONTAINMENT_HIDDEN)
+	owner_factions = FACTION_LIST_WY
+
+/// To be removed once not a conflict risk
+/obj/structure/machinery/camera/autoname/almayer/containment/hidden
+	network = list(CAMERA_NET_CONTAINMENT_HIDDEN)
+	owner_factions = FACTION_LIST_WY

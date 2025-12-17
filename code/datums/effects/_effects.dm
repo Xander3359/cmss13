@@ -36,12 +36,13 @@
 	var/obj_icon_state_path = null //The icon_state path for objs
 	var/mob_icon_state_path = null //The icon_state path for mobs
 	var/datum/cause_data/cause_data = null //Cause data for statistics
+	var/show_baloon_alert = FALSE //Used to limit balloon alerts
 
 /datum/effects/New(atom/thing, mob/from = null, last_dmg_source = null, zone = "chest")
 	if(!validate_atom(thing) || QDELETED(thing))
 		qdel(src)
 		return
-	START_PROCESSING(SSeffects, src)
+	START_PROCESSING(SSoldeffects, src)
 
 	affected_atom = thing
 	LAZYADD(affected_atom.effects_list, src)
@@ -118,7 +119,7 @@
 	if(affected_atom)
 		LAZYREMOVE(affected_atom.effects_list, src)
 		affected_atom = null
-	STOP_PROCESSING(SSeffects, src)
+	STOP_PROCESSING(SSoldeffects, src)
 	. = ..()
 
 

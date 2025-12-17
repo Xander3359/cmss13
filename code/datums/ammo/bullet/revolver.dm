@@ -7,14 +7,13 @@
 /datum/ammo/bullet/revolver
 	name = "revolver bullet"
 	headshot_state = HEADSHOT_OVERLAY_MEDIUM
-
-	damage = 55
+	damage = 72
 	penetration = ARMOR_PENETRATION_TIER_1
 	accuracy = HIT_ACCURACY_TIER_1
 
 /datum/ammo/bullet/revolver/marksman
 	name = "marksman revolver bullet"
-
+	damage = 55
 	shrapnel_chance = 0
 	damage_falloff = 0
 	accurate_range = 12
@@ -48,11 +47,11 @@
 
 /datum/ammo/bullet/revolver/marksman/toxin/on_hit_mob(mob/M, obj/projectile/P)
 	. = ..()
-	M.AddComponent(/datum/component/toxic_buildup, acid_per_hit)
+	M.AddComponent(/datum/component/status_effect/toxic_buildup, acid_per_hit)
 
 /datum/ammo/bullet/revolver/marksman/toxin/on_hit_turf(turf/T, obj/projectile/P)
 	. = ..()
-	if(T.flags_turf & TURF_ORGANIC)
+	if(T.turf_flags & TURF_ORGANIC)
 		P.damage *= organic_damage_mult
 
 /datum/ammo/bullet/revolver/marksman/toxin/on_hit_obj(obj/O, obj/projectile/P)
@@ -118,6 +117,9 @@
 
 	penetration = ARMOR_PENETRATION_TIER_3
 
+/datum/ammo/bullet/revolver/small/cmb
+	damage = 60
+
 /datum/ammo/bullet/revolver/small/hollowpoint
 	name = "small hollowpoint revolver bullet"
 	headshot_state = HEADSHOT_OVERLAY_MEDIUM
@@ -133,21 +135,22 @@
 	damage_var_low = PROJECTILE_VARIANCE_TIER_8
 	damage_var_high = PROJECTILE_VARIANCE_TIER_6
 	penetration = ARMOR_PENETRATION_TIER_4
+	headshot_state = HEADSHOT_OVERLAY_HEAVY
+
+/datum/ammo/bullet/revolver/mateba/New()
+	..()
+	RegisterSignal(src, COMSIG_AMMO_POINT_BLANK, PROC_REF(handle_battlefield_execution))
 
 /datum/ammo/bullet/revolver/mateba/highimpact
 	name = ".454 heavy high-impact revolver bullet"
 	debilitate = list(0,2,0,0,0,1,0,0)
-	penetration = ARMOR_PENETRATION_TIER_1
+	penetration = ARMOR_PENETRATION_TIER_5
 	flags_ammo_behavior = AMMO_BALLISTIC
 
 /datum/ammo/bullet/revolver/mateba/highimpact/ap
 	name = ".454 heavy high-impact armor piercing revolver bullet"
 	penetration = ARMOR_PENETRATION_TIER_10
-	damage = 45
-
-/datum/ammo/bullet/revolver/mateba/highimpact/New()
-	..()
-	RegisterSignal(src, COMSIG_AMMO_POINT_BLANK, PROC_REF(handle_battlefield_execution))
+	damage = 50
 
 /datum/ammo/bullet/revolver/mateba/highimpact/on_hit_mob(mob/M, obj/projectile/P)
 	knockback(M, P, 4)
@@ -172,7 +175,7 @@
 	..()
 	cell_explosion(T, 120, 30, EXPLOSION_FALLOFF_SHAPE_LINEAR, P.dir, P.weapon_cause_data)
 
-/datum/ammo/bullet/revolver/webley //Mateba round without the knockdown.
+/datum/ammo/bullet/revolver/webley //Mateba(Unica) round without the knockdown.
 	name = ".455 Webley bullet"
 	damage = 60
 	damage_var_low = PROJECTILE_VARIANCE_TIER_8

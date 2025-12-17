@@ -7,8 +7,8 @@
 	icon_dead = "slug_dead"
 	speak = list("Blurb.","Blub.","BLURP!")
 	speak_emote = list("blurps")
-	emote_hear = list("blurps")
-	emote_see = list("wiggles")
+	emote_hear = list("blurps.")
+	emote_see = list("wiggles.")
 	attacktext = "bites"
 	response_help  = "pets"
 	response_disarm = "shoos"
@@ -33,7 +33,6 @@
 		set_stat(CONSCIOUS)
 		icon_state = "slug_movement"
 		wander = 1
-		canmove = 1
 
 /mob/living/simple_animal/alien_slug/Initialize()
 	. = ..()

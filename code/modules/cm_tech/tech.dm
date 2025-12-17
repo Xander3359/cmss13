@@ -1,6 +1,6 @@
 /datum/tech
 	var/name = "tech"
-	var/desc = "placeholder description"
+	var/desc = "Placeholder description."
 
 	var/icon = 'icons/effects/techtree/tech.dmi'
 	var/icon_state = "unknown"
@@ -21,14 +21,16 @@
 	var/background_icon = "background"
 	var/background_icon_locked = "marine"
 
-	var/announce_name
+	var/announce_name = "ALMAYER SPECIAL ASSETS AUTHORIZED"
 	var/announce_message
+
+	var/is_tier_changer = FALSE
 
 /datum/tech/proc/can_unlock(mob/M)
 	SHOULD_CALL_PARENT(TRUE)
 
 	if(!holder.has_access(M, TREE_ACCESS_MODIFY))
-		to_chat(M, SPAN_WARNING("You lack the necessary permission required to use this tree"))
+		to_chat(M, SPAN_WARNING("You lack the necessary permission required to use this tree."))
 		return
 
 	if(!check_tier_level(M))
@@ -58,6 +60,7 @@
 
 	return TRUE
 
+
 /** Called when a tech is unlocked. Usually, benefits can be applied here
 * however, the purchase can still be cancelled by returning FALSE
 *
@@ -69,11 +72,17 @@
 	unlocked = TRUE
 	to_chat(user, SPAN_HELPFUL("You have purchased the '[name]' tech node."))
 	log_admin("[key_name_admin(user)] has bought '[name]' via tech points.")
+	if(!is_tier_changer)
+		var/log_details = announce_message
+		if(!log_details)
+			log_details = name
+		var/current_points = holder.points
+		log_ares_tech(user.real_name, is_tier_changer, announce_name, log_details, required_points, current_points)
 	holder.spend_points(required_points)
 	update_icon(node)
 
 	if(!(tech_flags & TECH_FLAG_NO_ANNOUNCE) && announce_message && announce_name)
-		marine_announcement(announce_message, announce_name, 'sound/misc/notice2.ogg')
+		marine_announcement(announce_message, announce_name, 'sound/misc/notice2.ogg', logging = ARES_LOG_NONE)
 
 	return TRUE
 

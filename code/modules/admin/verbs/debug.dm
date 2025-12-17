@@ -18,21 +18,6 @@
 	usr.show_message(t, SHOW_MESSAGE_VISIBLE)
 
 
-/client/proc/cmd_admin_robotize(mob/M in GLOB.mob_list)
-	set category = null
-	set name = "Make Robot"
-
-	if(!SSticker.mode)
-		alert("Wait until the game starts")
-		return
-	if(istype(M, /mob/living/carbon/human))
-		log_admin("[key_name(src)] has robotized [M.key].")
-		spawn(10)
-			M:Robotize()
-
-	else
-		alert("Invalid mob")
-
 /client/proc/cmd_admin_animalize(mob/M in GLOB.mob_list)
 	set category = null
 	set name = "Make Simple Animal"
@@ -75,7 +60,7 @@
 
 	var/mob/living/carbon/X = tgui_input_list(src,"Select a xeno.", "Change Hivenumber", GLOB.living_xeno_list)
 	if(!istype(X))
-		to_chat(usr, "This can only be done to instances of type /mob/living/carbon")
+		to_chat(usr, "This can only be done to instances of type /mob/living/carbon.")
 		return
 
 	cmd_admin_change_their_hivenumber(X)
@@ -86,8 +71,8 @@
 
 	if(!SSticker.mode)
 		to_chat(usr, "Mode not found?")
-	round_should_check_for_win = !round_should_check_for_win
-	if (round_should_check_for_win)
+	GLOB.round_should_check_for_win = !GLOB.round_should_check_for_win
+	if (GLOB.round_should_check_for_win)
 		message_admins("[key_name(src)] enabled checking for round-end.")
 	else
 		message_admins("[key_name(src)] disabled checking for round-end.")
@@ -128,18 +113,24 @@
 	var/cur_z = mob.z
 	var/width
 	var/height
+	var/offset_x = 0
+	var/offset_y = 0
 	if(istype(SSmapping.z_list[cur_z], /datum/space_level))
 		var/datum/space_level/cur_level = SSmapping.z_list[cur_z]
-		width = cur_level.x_bounds - half_chunk_size + 2
-		height = cur_level.y_bounds - half_chunk_size + 2
+		offset_x = cur_level.bounds[MAP_MINX] - 1
+		cur_x += offset_x
+		offset_y = cur_level.bounds[MAP_MINY] - 1
+		cur_y += offset_y
+		width = cur_level.bounds[MAP_MAXX] - cur_level.bounds[MAP_MINX] - half_chunk_size + 3
+		height = cur_level.bounds[MAP_MAXY] - cur_level.bounds[MAP_MINY] - half_chunk_size + 3
 	else
 		width = world.maxx - half_chunk_size + 2
 		height = world.maxy - half_chunk_size + 2
-	var/width_inside = width - 1
-	var/height_inside = height - 1
+	var/width_inside = width - 1 + offset_x
+	var/height_inside = height - 1 + offset_y
 
-	while(cur_y < height)
-		while(cur_x < width)
+	while(cur_y < height + offset_y)
+		while(cur_x < width + offset_x)
 			mob.on_mob_jump()
 			mob.forceMove(locate(cur_x, cur_y, cur_z))
 			sleep(sleep_duration)
@@ -167,7 +158,7 @@
 	set name = "Delete Instance"
 
 	// to prevent REALLY stupid deletions
-	var/blocked = list(/obj, /obj/item, /obj/effect, /obj/structure/machinery, /mob, /mob/living, /mob/living/carbon, /mob/living/carbon/xenomorph, /mob/living/carbon/human, /mob/dead, /mob/dead/observer, /mob/living/silicon, /mob/living/silicon/robot, /mob/living/silicon/ai)
+	var/blocked = list(/obj, /obj/item, /obj/effect, /obj/structure/machinery, /mob, /mob/living, /mob/living/carbon, /mob/living/carbon/xenomorph, /mob/living/carbon/human, /mob/dead, /mob/dead/observer, /mob/living/silicon, /mob/living/silicon/ai)
 	var/chosen_deletion = input(usr, "Type the path of the object you want to delete", "Delete:") as null|text
 	if(chosen_deletion)
 		chosen_deletion = text2path(chosen_deletion)
@@ -196,7 +187,8 @@
 /client/proc/cmd_debug_make_powernets()
 	set category = "Debug"
 	set name = "Generate Powernets"
-	if(alert("Are you sure you want to do this?",, "Yes", "No") != "Yes") return
+	if(alert("Are you sure you want to do this?",, "Yes", "No") != "Yes")
+		return
 	makepowernets()
 	message_admins("[key_name_admin(src)] has remade the powernets. makepowernets() called.", 0)
 
@@ -213,18 +205,18 @@
 		return
 	if (istype(M, /mob/living/carbon/human))
 		var/mob/living/carbon/human/H = M
-		if (H.wear_id)
-			var/obj/item/card/id/id = H.wear_id
+		var/obj/item/card/id/id = H.get_idcard()
+		if(id)
 			id.icon_state = "gold"
-			id:access = get_access(ACCESS_LIST_GLOBAL)
+			id.access = get_access(ACCESS_LIST_GLOBAL)
 		else
-			var/obj/item/card/id/id = new/obj/item/card/id(M);
+			id = new(M)
 			id.icon_state = "gold"
-			id:access = get_access(ACCESS_LIST_GLOBAL)
+			id.access = get_access(ACCESS_LIST_GLOBAL)
 			id.registered_name = H.real_name
 			id.registered_ref = WEAKREF(H)
 			id.assignment = "Captain"
-			id.name = "[id.registered_name]'s ID Card ([id.assignment])"
+			id.name = "[id.registered_name]'s [id.id_type] ([id.assignment])"
 			H.equip_to_slot_or_del(id, WEAR_ID)
 			H.update_inv_wear_id()
 	else
@@ -254,7 +246,7 @@
 	set name = "Create Bank Account"
 
 	if(!ishuman(target))
-		to_chat(src, SPAN_WARNING("This only works on humans"))
+		to_chat(src, SPAN_WARNING("This only works on humans."))
 		return
 
 	var/mob/living/carbon/human/account_user = target
@@ -279,7 +271,7 @@
 
 
 	var/datum/paygrade/account_paygrade = GLOB.paygrades[custom_paygrade]
-	var/obj/item/card/id/card = account_user.wear_id
+	var/obj/item/card/id/card = account_user.get_idcard()
 	generated_account = create_account(account_user.real_name, starting_amount, account_paygrade)
 	if(card)
 		card.associated_account_number = generated_account.account_number
@@ -290,15 +282,17 @@
 		remembered_info += "<b>Your account pin is:</b> [generated_account.remote_access_pin]<br>"
 		remembered_info += "<b>Your account funds are:</b> $[generated_account.money]<br>"
 
-		if(generated_account.transaction_log.len)
+		if(length(generated_account.transaction_log))
 			var/datum/transaction/T = generated_account.transaction_log[1]
 			remembered_info += "<b>Your account was created:</b> [T.time], [T.date] at [T.source_terminal]<br>"
 		account_user.mind.store_memory(remembered_info)
 		account_user.mind.initial_account = generated_account
 
+	log_admin("[key_name(usr)] has created a new bank account for [key_name(account_user)].")
+
 /client/proc/cmd_assume_direct_control(mob/M in GLOB.mob_list)
 	set name = "Control Mob"
-	set desc = "Assume control of the mob"
+	set desc = "Assume control of the mob."
 	set category = null
 
 	if(!check_rights(R_DEBUG|R_ADMIN))
@@ -326,24 +320,24 @@
 /client/proc/cmd_debug_list_processing_items()
 	set category = "Debug.Controllers"
 	set name = "List Processing Items"
-	set desc = "For scheduler debugging"
+	set desc = "For scheduler debugging."
 
 	var/list/individual_counts = list()
-	for(var/datum/disease/M in active_diseases)
+	for(var/datum/disease/M in SSdisease.all_diseases)
 		individual_counts["[M.type]"]++
 	for(var/mob/M in SShuman.processable_human_list)
 		individual_counts["[M.type]"]++
-	for(var/obj/structure/machinery/M in processing_machines)
+	for(var/obj/structure/machinery/M in GLOB.processing_machines)
 		individual_counts["[M.type]"]++
-	for(var/datum/powernet/M in powernets)
+	for(var/datum/powernet/M in GLOB.powernets)
 		individual_counts["[M.type]"]++
 	for(var/mob/M in SSmob.living_misc_mobs)
 		individual_counts["[M.type]"]++
-	for(var/datum/nanoui/M in nanomanager.processing_uis)
+	for(var/datum/nanoui/M in SSnano.nanomanager.processing_uis)
 		individual_counts["[M.type]"]++
-	for(var/datum/powernet/M in powernets)
+	for(var/datum/powernet/M in GLOB.powernets)
 		individual_counts["[M.type]"]++
-	for(var/datum/M in power_machines)
+	for(var/datum/M in GLOB.power_machines)
 		individual_counts["[M.type]"]++
 	for(var/mob/M in GLOB.xeno_mob_list)
 		individual_counts["[M.type]"]++
@@ -354,3 +348,37 @@
 
 
 	show_browser(usr, "<TT>[str]</TT>", "Ticker Count", "tickercount")
+
+/client/proc/allow_browser_inspect()
+	set category = "Debug"
+	set name = "Allow Browser Inspect"
+	set desc = "Allow browser debugging via inspect."
+
+	if(!check_rights(R_DEBUG) || !isclient(src))
+		return
+
+	if(byond_version < 516)
+		to_chat(src, SPAN_WARNING("You can only use this on 516!"))
+		return
+
+	to_chat(src, SPAN_INFO("You can now right click to use inspect on browsers."))
+	winset(src, null, list("browser-options" = "+devtools"))
+	winset(src, null, list("browser-options" = "+find"))
+	winset(src, null, list("browser-options" = "+refresh"))
+
+#ifdef TESTING
+GLOBAL_LIST_EMPTY(dirty_vars)
+
+/client/proc/see_dirty_varedits()
+	set category = "Debug.Mapping"
+	set name = "Dirty Varedits"
+
+	var/list/dat = list()
+	dat += "<h3>Abandon all hope ye who enter here</h3><br><br>"
+	for(var/thing in GLOB.dirty_vars)
+		dat += "[thing]<br>"
+		CHECK_TICK
+	var/datum/browser/popup = new(usr, "dirty_vars", "Dirty Varedits", nwidth = 900, nheight = 750)
+	popup.set_content(dat.Join())
+	popup.open()
+#endif

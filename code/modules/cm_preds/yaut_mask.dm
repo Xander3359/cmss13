@@ -13,6 +13,7 @@
 	icon_state = "pred_mask1_ebony"
 	item_state = "helmet"
 	item_state_slots = list(WEAR_FACE = "pred_mask1_ebony")
+	valid_accessory_slots = list(ACCESSORY_SLOT_YAUTJA_MASK)
 
 	armor_melee = CLOTHING_ARMOR_MEDIUM
 	armor_bullet = CLOTHING_ARMOR_MEDIUMHIGH
@@ -43,8 +44,10 @@
 	var/list/mask_huds = list(MOB_HUD_XENO_STATUS, MOB_HUD_HUNTER, MOB_HUD_HUNTER_CLAN, MOB_HUD_MEDICAL_OBSERVER)
 	var/thrall = FALSE //Used to affect icon generation.
 
+	///A list of all intrinsic mask actions
+	var/list/mask_actions = list(/datum/action/predator_action/mask/zoom, /datum/action/predator_action/mask/visor)
 
-/obj/item/clothing/mask/gas/yautja/New(location, mask_number = rand(1,12), armor_material = "ebony", legacy = "None")
+/obj/item/clothing/mask/gas/yautja/New(location, mask_number = rand(1,17), armor_material = "ebony", legacy = "None")
 	..()
 	forceMove(location)
 	if(thrall)
@@ -69,15 +72,15 @@
 				LAZYSET(item_state_slots, WEAR_FACE, "pred_mask_elder_n")
 				return
 
-	if(mask_number > 12)
+	if(mask_number > 17)
 		mask_number = 1
 	icon_state = "pred_mask[mask_number]_[armor_material]"
 	LAZYSET(item_state_slots, WEAR_FACE, "pred_mask[mask_number]_[armor_material]")
 
 /obj/item/clothing/mask/gas/yautja/pickup(mob/living/user)
+	. = ..()
 	if(isyautja(user))
 		remove_from_missing_pred_gear(src)
-	..()
 
 /obj/item/clothing/mask/gas/yautja/Destroy()
 	remove_from_missing_pred_gear(src)
@@ -96,8 +99,8 @@
 		if(istype(visor, /obj/item/clothing/glasses/night/yautja))//To change if any new vision modes are made
 			human_holder.temp_drop_inv_item(visor)
 			qdel(visor)
-			human_holder.update_inv_glasses()
 			human_holder.update_sight()
+			add_vision(human_holder)
 
 /obj/item/clothing/mask/gas/yautja/proc/drain_power(mob/living/carbon/human/human_holder, drain_amount)
 	var/obj/item/clothing/gloves/yautja/bracer = human_holder.gloves
@@ -115,6 +118,21 @@
 		return
 
 	zoom(usr, 11, 12)
+	update_zoom_action(src, usr)
+	if(zoom)
+		RegisterSignal(src, COMSIG_ITEM_UNZOOM, PROC_REF(update_zoom_action))
+		playsound(src, 'sound/effects/pred_zoom_on.ogg', 50, FALSE, 2)
+		return
+	else
+		playsound(src, 'sound/effects/pred_zoom_off.ogg', 50, FALSE, 2)
+
+/obj/item/clothing/mask/gas/yautja/proc/update_zoom_action(source, mob/living/user)
+	UnregisterSignal(src, COMSIG_ITEM_UNZOOM)
+	var/datum/action/predator_action/mask/zoom/zoom_action
+	for(zoom_action as anything in user.actions)
+		if(istypestrict(zoom_action, /datum/action/predator_action/mask/zoom))
+			zoom_action.update_button_icon(zoom)
+			break
 
 /obj/item/clothing/mask/gas/yautja/verb/togglesight()
 	set name = "Toggle Mask Visors"
@@ -165,14 +183,23 @@
 	playsound(src, 'sound/effects/pred_vision.ogg', 15, 1)
 	user.update_inv_glasses()
 
+	var/datum/action/predator_action/mask/visor/visor_action
+	for(visor_action as anything in user.actions)
+		if(istypestrict(visor_action, /datum/action/predator_action/mask/visor))
+			visor_action.update_button_icon(current_goggles)
+			break
+
 #undef VISION_MODE_OFF
 #undef VISION_MODE_NVG
 
 /obj/item/clothing/mask/gas/yautja/dropped(mob/living/carbon/human/user) //Clear the gogglors if the helmet is removed.
 	STOP_PROCESSING(SSobj, src)
 	if(istype(user) && user.wear_mask == src) //inventory reference is only cleared after dropped().
+		for(var/datum/action/action as anything in mask_actions)
+			remove_action(user, action)
+
 		for(var/listed_hud in mask_huds)
-			var/datum/mob_hud/H = huds[listed_hud]
+			var/datum/mob_hud/H = GLOB.huds[listed_hud]
 			H.remove_hud_from(user, src)
 		var/obj/item/visor = user.glasses
 		if(visor) //make your hud fuck off
@@ -185,9 +212,12 @@
 
 /obj/item/clothing/mask/gas/yautja/equipped(mob/living/carbon/human/user, slot)
 	if(slot == WEAR_FACE)
+		for(var/datum/action/action as anything in mask_actions)
+			give_action(user, action)
+
 		START_PROCESSING(SSobj, src)
 		for(var/listed_hud in mask_huds)
-			var/datum/mob_hud/H = huds[listed_hud]
+			var/datum/mob_hud/H = GLOB.huds[listed_hud]
 			H.add_hud_to(user, src)
 		if(current_goggles)
 			var/obj/item/clothing/gloves/yautja/bracer = user.gloves
@@ -199,13 +229,13 @@
 /obj/item/clothing/mask/gas/yautja/thrall
 	name = "alien mask"
 	desc = "A simplistic metallic face mask with advanced capabilities."
-	icon_state = "thrall_mask"
-	item_state = "thrall_mask"
+	icon_state = "thrallmask_ebony"
+	item_state = "thrallmask_ebony"
 	icon = 'icons/obj/items/hunter/thrall_gear.dmi'
 	item_icons = list(
 		WEAR_FACE = 'icons/mob/humans/onmob/hunter/thrall_gear.dmi'
 	)
-	item_state_slots = list(WEAR_FACE = "thrall_mask")
+	item_state_slots = list(WEAR_FACE = "thrallmask_ebony")
 	thrall = TRUE
 
 /obj/item/clothing/mask/gas/yautja/thrall/toggle_zoom()
@@ -282,3 +312,11 @@
 
 /obj/item/clothing/mask/yautja_flavor/map_random
 	map_random = TRUE
+
+/obj/item/clothing/accessory/mask
+	name = "Mask Ornament"
+	desc = "An ornate addition to your mask."
+	icon = 'icons/obj/items/hunter/pred_mask_accessories.dmi'
+	accessory_icons = list(WEAR_FACE = 'icons/mob/humans/onmob/hunter/pred_mask_accessories.dmi')
+	icon_state = null
+	worn_accessory_slot = ACCESSORY_SLOT_YAUTJA_MASK

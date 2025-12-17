@@ -2,7 +2,7 @@
 	icon = 'icons/obj/items/assemblies.dmi'
 	name = "tank transfer valve"
 	icon_state = "valve_1"
-	desc = "Regulates the transfer of air between two tanks"
+	desc = "Regulates the transfer of air between two tanks."
 	var/obj/item/tank/tank_one
 	var/obj/item/tank/tank_two
 	var/obj/item/device/attached_device
@@ -47,7 +47,7 @@
 		user.temp_drop_inv_item(A)
 		attached_device = A
 		A.forceMove(src)
-		to_chat(user, SPAN_NOTICE("You attach the [item] to the valve controls and secure it."))
+		to_chat(user, SPAN_NOTICE("You attach [item] to the valve controls and secure it."))
 		A.holder = src
 		A.toggle_secure() //this calls update_icon(), which calls update_icon() on the holder (i.e. the bomb).
 
