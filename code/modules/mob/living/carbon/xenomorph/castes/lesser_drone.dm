@@ -55,10 +55,11 @@
 	counts_for_slots = FALSE
 	counts_for_roundend = FALSE
 	refunds_larva_if_banished = FALSE
-	crit_health = 0
+	health_threshold_dead = 0
 	gib_chance = 100
 	acid_blood_damage = 15
 	base_actions = list(
+		/datum/action/xeno_action/onclick/toggle_seethrough,
 		/datum/action/xeno_action/onclick/xeno_resting,
 		/datum/action/xeno_action/onclick/release_haul,
 		/datum/action/xeno_action/watch_xeno,
@@ -127,3 +128,18 @@
 /datum/behavior_delegate/lesser_drone_base/on_life()
 	if(bound_xeno.body_position == STANDING_UP && !(locate(/obj/effect/alien/weeds) in get_turf(bound_xeno)))
 		bound_xeno.adjustBruteLoss(5)
+
+
+/datum/action/xeno_action/onclick/plant_weeds/lesser/use_ability(atom/target_atom)
+	var/mob/living/carbon/xenomorph/lesser_drone/xeno = owner
+	var/obj/effect/alien/weeds/node/mother_node
+
+	for(var/obj/effect/alien/weeds/node/node_to_check in orange(4, owner))
+		if(node_to_check.hivenumber == xeno.hivenumber)
+			mother_node = node_to_check
+			break
+	if(!mother_node)
+		to_chat(xeno, SPAN_XENOWARNING("We can only plant weed nodes near other weed nodes our hive owns!"))
+		return
+
+	. = ..()
